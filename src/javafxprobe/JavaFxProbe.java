@@ -67,7 +67,7 @@ public class JavaFxProbe extends Application {
         });
         
         HBox hbInputText = new HBox(10);
-        hbInputText.setAlignment(Pos.CENTER_LEFT);
+        hbInputText.setAlignment(Pos.CENTER);
         hbInputText.getChildren().addAll(textFieldLabel, textField, textFieldInput);
         
         TableColumn firstColumn = new TableColumn("First");
@@ -87,7 +87,6 @@ public class JavaFxProbe extends Application {
         
         table.setItems(data);
         table.getColumns().addAll(firstColumn, secondColumn, thirdColumn);
-        table.setMaxWidth(600);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         
         Button addButton = new Button("Add something");
@@ -102,7 +101,6 @@ public class JavaFxProbe extends Application {
         vBox.setAlignment(Pos.CENTER);
         vBox.setSpacing(5);
         vBox.setPadding(new Insets(10, 0, 0, 10));
-        vBox.setMaxWidth(600);
         vBox.getChildren().addAll(addButton, table);
       
         GridPane grid = new GridPane();
@@ -116,7 +114,7 @@ public class JavaFxProbe extends Application {
         grid.add(hbBtn, 0, 1);
         grid.add(hbInputText, 0, 2);
         grid.add(vBox,0,3);
-        grid.setMaxWidth(600);
+
         
         //grid.setGridLinesVisible(true);
         
