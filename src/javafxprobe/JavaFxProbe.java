@@ -18,6 +18,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.effect.BlendMode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -31,44 +32,39 @@ import javafx.stage.Stage;
 public class JavaFxProbe extends Application {
     
     private int count= 0;
-    private Button btn = new Button();
-    private Text countText = new Text("" + count);
-    private Text textFieldLabel = new Text("Stuff: ");
-    private TextField textField = new TextField();
-    private Text textFieldInput = new Text("");
+    private Text pvNameLabel = new Text("PV Name: ");
+    private TextField pvNameInputField = new TextField();
+    private Text valueLabel = new Text("Value: ");
+    private TextField valueField = new TextField();
     private final TableView<Thing> table = new TableView<>();
     private ObservableList<Thing> data = FXCollections.observableArrayList(new Thing(), new Thing());
     
     @Override
     public void start(Stage primaryStage) {
 
-        btn.setText("+1");
-        btn.setOnAction(new EventHandler<ActionEvent>() {
+        pvNameInputField.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                increment();
+                pvNameInputField.clear();
             }
         });
         
-        HBox hbBtn = new HBox(10);
-        hbBtn.setAlignment(Pos.CENTER);
-        hbBtn.getChildren().add(btn);
+        HBox pvNameBox = new HBox(10);
+        pvNameBox.setAlignment(Pos.TOP_LEFT);
+        pvNameBox.getChildren().addAll(pvNameLabel, pvNameInputField);
         
-        HBox hbText = new HBox(10);
-        hbText.setAlignment(Pos.CENTER);
-        hbText.getChildren().add(countText);
-        
-        textField.setOnAction(new EventHandler<ActionEvent>() {
+        valueField.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                textFieldInput.setText(textField.getText());
-                textField.clear();
+                valueField.setEditable(false);
+                valueField.setBlendMode(BlendMode.OVERLAY);
+                valueField.clear();
             }
         });
         
-        HBox hbInputText = new HBox(10);
-        hbInputText.setAlignment(Pos.CENTER);
-        hbInputText.getChildren().addAll(textFieldLabel, textField, textFieldInput);
+        HBox valueBox = new HBox(10);
+        valueBox.setAlignment(Pos.TOP_LEFT);
+        valueBox.getChildren().addAll(valueLabel, valueField);
         
         TableColumn firstColumn = new TableColumn("First");
         firstColumn.setMinWidth(100);
@@ -104,17 +100,15 @@ public class JavaFxProbe extends Application {
         vBox.getChildren().addAll(addButton, table);
       
         GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
+        grid.setAlignment(Pos.CENTER_LEFT);
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
         Scene scene = new Scene(grid, 800, 600);
         
-        grid.add(hbText, 0, 0);
-        grid.add(hbBtn, 0, 1);
-        grid.add(hbInputText, 0, 2);
-        grid.add(vBox,0,3);
-        grid.setMaxWidth(500);
+        grid.add(pvNameBox, 0, 0);
+        grid.add(valueBox, 0, 1);
+        grid.add(vBox,0,2);
         
         //grid.setGridLinesVisible(true);
         
@@ -133,11 +127,6 @@ public class JavaFxProbe extends Application {
      */
     public static void main(String[] args) {
         launch(args);
-    }
-    
-    public void increment(){
-        count++;
-        countText.setText("" + count);
     }
     
     public static class Thing{
