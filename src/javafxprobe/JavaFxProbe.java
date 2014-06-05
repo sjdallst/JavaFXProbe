@@ -108,13 +108,13 @@ public class JavaFxProbe extends Application {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
-        Scene scene = new Scene(grid, 800, 250);
+        Scene scene = new Scene(grid, 800, 600);
         
         grid.add(hbText, 0, 0);
         grid.add(hbBtn, 0, 1);
         grid.add(hbInputText, 0, 2);
         grid.add(vBox,0,3);
-
+        grid.setMaxWidth(500);
         
         //grid.setGridLinesVisible(true);
         
