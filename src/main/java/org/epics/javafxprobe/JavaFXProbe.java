@@ -6,33 +6,22 @@
 
 package org.epics.javafxprobe;
 
-import java.util.EnumMap;
-import java.util.Map;
 import javafx.application.Platform;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javax.swing.border.Border;
-import org.epics.pvmanager.DataSource;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -44,7 +33,6 @@ import org.epics.pvmanager.sample.SetupUtil;
 import org.epics.util.time.TimeDuration;
 import static org.epics.util.time.TimeDuration.ofHertz;
 import org.epics.vtype.Alarm;
-import org.epics.vtype.AlarmSeverity;
 import org.epics.vtype.Display;
 import org.epics.vtype.SimpleValueFormat;
 import org.epics.vtype.Time;
@@ -64,6 +52,17 @@ public class JavaFXProbe extends javafx.application.Application {
     private Text metadataLabel = new Text("Meta Data: ");
     private Text pvTimeLabel = new Text("Time: ");
     private Text pvTypeLabel = new Text("Type: ");
+    private Text displayLimitsLabel = new Text("Display Limits: ");
+    private Text alarmLimitsLabel = new Text("Alarm Limits: ");
+    private Text warningLimitsLabel = new Text("Warning Limits: ");
+    private Text controlLimitsLabel = new Text("Control Limits: ");
+    private Text unitLabel = new Text("Unit: ");
+    private Text expressionTypeLabel = new Text("Expression Type: ");
+    private Text expressionNameLabel = new Text("Expression Name: ");
+    private Text channelHandlerLabel = new Text("Channel Handler Name: ");
+    private Text usageCountLabel = new Text("Usage Count: ");
+    private Text connectedRWLabel = new Text("Connected (R-W): ");
+    private Text channelPropertiesLabel = new Text("Channel Properties: ");
     private Text writeConnectedLabel = new Text("Write Connected: ");
     private Text connectedLabel = new Text("Connected: ");
     private TextField pvNameField = new TextField();
@@ -72,6 +71,17 @@ public class JavaFXProbe extends javafx.application.Application {
     private TextField metadataField = new TextField();
     private TextField pvTimeField = new TextField();
     private TextField pvTypeField = new TextField();
+    private TextField displayLimitsField = new TextField();
+    private TextField alarmLimitsField = new TextField();
+    private TextField warningLimitsField = new TextField();
+    private TextField controlLimitsField = new TextField();
+    private TextField unitField = new TextField();
+    private TextField expressionTypeField = new TextField();
+    private TextField expressionNameField = new TextField();
+    private TextField channelHandlerField = new TextField();
+    private TextField usageCountField = new TextField();
+    private TextField connectedRWField = new TextField();
+    private TextField channelPropertiesField = new TextField();
     private TextField writeConnectedField = new TextField();
     private TextField connectedField = new TextField();
     private Slider indicator = new Slider();
@@ -102,10 +112,10 @@ public class JavaFXProbe extends javafx.application.Application {
                                         Object value = pv.getValue();
                                         setTextValue(format.format(value));
                                         setType(ValueUtil.typeOf(value));
-                                        setAlarm(ValueUtil.alarmOf(value));
                                         setTime(ValueUtil.timeOf(value));
                                         setIndicator(ValueUtil.normalizedNumericValueOf(value));
                                         setMetadata(ValueUtil.displayOf(value));
+                                        setAlarm(ValueUtil.alarmOf(value));
                                         setConnected(pv.isConnected());
                                     }
                                 })
@@ -142,25 +152,24 @@ public class JavaFXProbe extends javafx.application.Application {
         
         Separator seperator1 = new Separator();
         Separator seperator2 = new Separator();
+        Separator seperator3 = new Separator();
         
-        grid.add(pvNameLabel, 0, 0);
-        grid.add(pvNameField, 1, 0);
+        grid.addRow(0, pvNameLabel, pvNameField);
         grid.add(seperator1, 0, 1, 2, 1);
-        grid.add(pvValueLabel, 0, 2);
-        grid.add(pvValueField, 1, 2);
-        grid.add(seperator2, 0, 3, 2, 1);
-        grid.add(lastErrorLabel, 0, 4);
-        grid.add(lastErrorField, 1, 4);
-        grid.add(metadataLabel, 0, 5);
-        grid.add(metadataField, 1, 5);
-        grid.add(pvTimeLabel, 0, 6);
-        grid.add(pvTimeField, 1, 6);
-        grid.add(pvTypeLabel, 0, 7);
-        grid.add(pvTypeField, 1, 7);
-        grid.add(writeConnectedLabel, 0, 8);
-        grid.add(writeConnectedField, 1, 8);
-        grid.add(connectedLabel, 0, 9);
-        grid.add(connectedField, 1, 9);
+        grid.addRow(2, pvValueLabel, pvValueField);
+        grid.addRow(3, pvTimeLabel, pvTimeField);
+        grid.add(seperator2, 0, 4, 2, 1);
+        grid.addRow(5, pvTypeLabel, pvTypeField);
+        grid.addRow(6, displayLimitsLabel, displayLimitsField);
+        grid.addRow(7, alarmLimitsLabel, alarmLimitsField);
+        grid.addRow(8, warningLimitsLabel, warningLimitsField);
+        grid.addRow(9, controlLimitsLabel, controlLimitsField);
+        grid.addRow(10, unitLabel, unitField);
+        grid.add(seperator3, 0, 11, 2, 1);
+        grid.addRow(12, lastErrorLabel, lastErrorField);
+        grid.addRow(13, writeConnectedLabel, writeConnectedField);
+        grid.addRow(14, connectedLabel, connectedField);
+        
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -256,11 +265,20 @@ public class JavaFXProbe extends javafx.application.Application {
                 }
             });
         } else {
-            final String metadata = display.getUpperDisplayLimit() + " - " + display.getLowerDisplayLimit();
+            final String displayLimits = display.getUpperDisplayLimit() + " - " + display.getLowerDisplayLimit();
+            final String alarmLimits = display.getUpperAlarmLimit() + " - " + display.getLowerAlarmLimit();
+            final String warningLimits = display.getUpperWarningLimit() + " - " + display.getLowerWarningLimit();
+            final String controlLimits = display.getUpperCtrlLimit() + " - " + display.getLowerCtrlLimit();
+            final String unit = display.getUnits();
+            
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    metadataField.setText(metadata);
+                    displayLimitsField.setText(displayLimits);
+                    alarmLimitsField.setText(alarmLimits);
+                    warningLimitsField.setText(warningLimits);
+                    controlLimitsField.setText(controlLimits);
+                    unitField.setText(unit);
                 }
             });
         }
