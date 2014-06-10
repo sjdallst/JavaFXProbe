@@ -32,6 +32,7 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javax.swing.border.Border;
+import org.epics.pvmanager.DataSource;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -76,8 +77,6 @@ public class JavaFXProbe extends javafx.application.Application {
     private Slider indicator = new Slider();
     private ValueFormat format = new SimpleValueFormat(3);
     
-    Map<AlarmSeverity, Border> borders = new EnumMap<AlarmSeverity, Border>(AlarmSeverity.class);
-    
     public void start(){
         this.start(new Stage());
     }
@@ -94,7 +93,7 @@ public class JavaFXProbe extends javafx.application.Application {
                 }
 
                 try {
-                    pv = PVManager.readAndWrite(channel(pvNameLabel.getText()))
+                    pv = PVManager.readAndWrite(channel(pvNameField.getText()))
                             .timeout(TimeDuration.ofSeconds(5))
                             .readListener(new PVReaderListener<Object>() {
                                     @Override
@@ -121,7 +120,6 @@ public class JavaFXProbe extends javafx.application.Application {
                 } catch (RuntimeException ex) {
                     setLastError(ex);
                 }
-                pvNameField.clear();
             }
         });
         
@@ -179,8 +177,9 @@ public class JavaFXProbe extends javafx.application.Application {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        SetupUtil.defaultCASetupForSwing();
+        SetupUtil.defaultCASetup();
         Platform.runLater(new Runnable() {
+            @Override
             public void run() {
                 new JavaFXProbe().start();
             }
@@ -190,6 +189,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private void setTextValue(String value) {
         if (value == null) {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     pvValueField.setText("");
                 }
@@ -197,6 +197,7 @@ public class JavaFXProbe extends javafx.application.Application {
         } else {
             final String value1 = value;
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     pvValueField.setText(value1);
                 }
@@ -207,6 +208,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private void setType(Class type) {
         if (type == null) {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     pvTypeField.setText("");
                 }
@@ -214,6 +216,7 @@ public class JavaFXProbe extends javafx.application.Application {
         } else {
             final String simpleName = type.getSimpleName();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     pvTypeField.setText(simpleName);
                 }
@@ -228,15 +231,17 @@ public class JavaFXProbe extends javafx.application.Application {
     private void setTime(Time time) {
         if (time == null) {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
-                    pvTypeField.setText("");
+                    pvTimeField.setText("");
                 }
             });
         } else {
             final String timeString = time.getTimestamp().toDate().toString();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
-                    pvTypeField.setText(timeString);
+                    pvTimeField.setText(timeString);
                 }
             });
         }
@@ -245,6 +250,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private void setMetadata(Display display) {
         if (display == null) {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     metadataField.setText("");
                 }
@@ -252,6 +258,7 @@ public class JavaFXProbe extends javafx.application.Application {
         } else {
             final String metadata = display.getUpperDisplayLimit() + " - " + display.getLowerDisplayLimit();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     metadataField.setText(metadata);
                 }
@@ -264,6 +271,7 @@ public class JavaFXProbe extends javafx.application.Application {
             ex.printStackTrace();
             final String message = ex.getClass().getSimpleName() + " " + ex.getMessage();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     lastErrorField.setText(message);
                 }
@@ -276,12 +284,14 @@ public class JavaFXProbe extends javafx.application.Application {
         if (connected != null) {
             final String connectedString = connected.toString();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     connectedField.setText(connectedString);
                 }
             });
         } else {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     connectedField.setText("");
                 }
@@ -293,12 +303,14 @@ public class JavaFXProbe extends javafx.application.Application {
         if (connected != null) {
             final String connectedString = connected.toString();
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     writeConnectedField.setText(connectedString);
                 }
             });
         } else {
             Platform.runLater(new Runnable() {
+                @Override
                 public void run() {
                     writeConnectedField.setText("");
                 }
@@ -314,6 +326,7 @@ public class JavaFXProbe extends javafx.application.Application {
         }
         final double position1 = position;
         Platform.runLater(new Runnable() {
+            @Override
             public void run() {
                 indicator.setValue(position1);
             }
