@@ -7,13 +7,14 @@
 package org.epics.javafxprobe;
 
 import javafx.application.Platform;
+import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.ScrollBar;
+import javafx.scene.canvas.*;
+import javafx.scene.control.Button;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
@@ -22,6 +23,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -29,6 +32,8 @@ import org.epics.pvmanager.PVReaderEvent;
 import org.epics.pvmanager.PVReaderListener;
 import org.epics.pvmanager.PVWriterEvent;
 import org.epics.pvmanager.PVWriterListener;
+import org.epics.pvmanager.sample.BaseGraphApp;
+import org.epics.pvmanager.sample.LineGraphApp;
 import org.epics.pvmanager.sample.SetupUtil;
 import org.epics.util.time.TimeDuration;
 import static org.epics.util.time.TimeDuration.ofHertz;
@@ -46,6 +51,7 @@ import org.epics.vtype.ValueUtil;
 public class JavaFXProbe extends javafx.application.Application {
     
     PV<?,?> pv;
+    private GridPane grid = new GridPane();
     private Text pvNameLabel = new Text("PV Name: ");
     private Text pvValueLabel = new Text("Value: ");
     private Text lastErrorLabel = new Text("Last Error: ");
@@ -86,6 +92,11 @@ public class JavaFXProbe extends javafx.application.Application {
     private TextField connectedField = new TextField();
     private Slider indicator = new Slider();
     private ValueFormat format = new SimpleValueFormat(3);
+    
+    private Button viewTestButton = new Button();
+    private Canvas canvas = new Canvas(100, 100);
+    private GraphicsContext gc = canvas.getGraphicsContext2D();
+    private boolean showCanvas = false;
     
     public void start(){
         this.start(new Stage());
@@ -142,13 +153,36 @@ public class JavaFXProbe extends javafx.application.Application {
                 pvValueField.clear();
             }
         });
+        
+        viewTestButton.setText("Test");
+        viewTestButton.setOnAction(new EventHandler<ActionEvent>() {
+           @Override
+           public void handle(ActionEvent even) {
+               if(showCanvas) {
+                   grid.getChildren().remove(canvas);
+                   showCanvas = false;
+               }
+               else {
+                   grid.add(canvas, 0, 16, 2, 2);
+                   showCanvas = true;
+               }
+               grid.getChildren().remove(pvValueField);
+           }
+        });
+        
+        gc.setFill(Paint.valueOf("white"));
+        gc.fillRect(0, 0, 100, 100);
+        gc.strokeOval(0, 0, 100, 100);
+        
+        final SwingNode swingNode = new SwingNode();
+        createSwingContent(swingNode);
       
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER_LEFT);
+        grid.setAlignment(Pos.TOP_LEFT);
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
-        Scene scene = new Scene(grid, 300, 400);
+        
+        Scene scene = new Scene(grid, 400, 600);
         
         Separator seperator1 = new Separator();
         Separator seperator2 = new Separator();
@@ -169,7 +203,8 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.addRow(12, lastErrorLabel, lastErrorField);
         grid.addRow(13, writeConnectedLabel, writeConnectedField);
         grid.addRow(14, connectedLabel, connectedField);
-        
+        grid.add(viewTestButton, 0, 15, 2, 1);
+        grid.add(swingNode, 0, 17, 2, 6);
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -349,5 +384,9 @@ public class JavaFXProbe extends javafx.application.Application {
                 indicator.setValue(position1);
             }
         });
+    }
+    
+    private void createSwingContent(SwingNode swingNode){
+        swingNode.setContent(((new LineGraphApp()).getRootPane()));
     }
 }
