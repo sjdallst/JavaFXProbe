@@ -41,6 +41,7 @@ import org.epics.vtype.Alarm;
 import org.epics.vtype.Display;
 import org.epics.vtype.SimpleValueFormat;
 import org.epics.vtype.Time;
+import org.epics.vtype.*;
 import org.epics.vtype.ValueFormat;
 import org.epics.vtype.ValueUtil;
 
@@ -96,7 +97,9 @@ public class JavaFXProbe extends javafx.application.Application {
     private Button viewTestButton = new Button();
     private Canvas canvas = new Canvas(100, 100);
     private GraphicsContext gc = canvas.getGraphicsContext2D();
-    private boolean showCanvas = false;
+    private boolean showVisual = true, visualAdded = false;
+    private final SwingNode visualSwingNode = new SwingNode();
+    private Text visualText = new Text();
     
     public void start(){
         this.start(new Stage());
@@ -128,6 +131,9 @@ public class JavaFXProbe extends javafx.application.Application {
                                         setMetadata(ValueUtil.displayOf(value));
                                         setAlarm(ValueUtil.alarmOf(value));
                                         setConnected(pv.isConnected());
+                                        if(showVisual && value != null){
+                                            setVisual(value);
+                                        }
                                     }
                                 })
                             .writeListener(new PVWriterListener<Object>() {
@@ -158,24 +164,20 @@ public class JavaFXProbe extends javafx.application.Application {
         viewTestButton.setOnAction(new EventHandler<ActionEvent>() {
            @Override
            public void handle(ActionEvent even) {
-               if(showCanvas) {
-                   grid.getChildren().remove(canvas);
-                   showCanvas = false;
+               if(showVisual && visualAdded) {
+                   showVisual = false;
+                   grid.getChildren().remove(grid.getChildren().size() - 1);
                }
                else {
-                   grid.add(canvas, 0, 16, 2, 2);
-                   showCanvas = true;
+                   showVisual = true;
+                   visualAdded = false;
                }
-               grid.getChildren().remove(pvValueField);
            }
         });
         
         gc.setFill(Paint.valueOf("white"));
         gc.fillRect(0, 0, 100, 100);
         gc.strokeOval(0, 0, 100, 100);
-        
-        final SwingNode swingNode = new SwingNode();
-        createSwingContent(swingNode);
       
         grid.setAlignment(Pos.TOP_LEFT);
         grid.setHgap(10);
@@ -204,7 +206,6 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.addRow(13, writeConnectedLabel, writeConnectedField);
         grid.addRow(14, connectedLabel, connectedField);
         grid.add(viewTestButton, 0, 15, 2, 1);
-        grid.add(swingNode, 0, 17, 2, 6);
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -384,6 +385,22 @@ public class JavaFXProbe extends javafx.application.Application {
                 indicator.setValue(position1);
             }
         });
+    }
+    
+    private void setVisual(Object value){
+        final Object value1 = value;
+        if(value instanceof VNumber){
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    if(!visualAdded){
+                        grid.add(visualText, 0, 16, 2, 6);
+                        visualAdded = true;
+                    }
+                    visualText.setText(ValueUtil.numericValueOf(value1).toString());    
+                }
+            });
+        }
     }
     
     private void createSwingContent(SwingNode swingNode){
