@@ -20,11 +20,15 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JRootPane;
+import org.epics.javafxprobe.BaseGraphApp;
+import org.epics.javafxprobe.LineGraphApp;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -32,16 +36,14 @@ import org.epics.pvmanager.PVReaderEvent;
 import org.epics.pvmanager.PVReaderListener;
 import org.epics.pvmanager.PVWriterEvent;
 import org.epics.pvmanager.PVWriterListener;
-import org.epics.pvmanager.sample.BaseGraphApp;
-import org.epics.pvmanager.sample.LineGraphApp;
 import org.epics.pvmanager.sample.SetupUtil;
 import org.epics.util.time.TimeDuration;
 import static org.epics.util.time.TimeDuration.ofHertz;
+import org.epics.vtype.*;
 import org.epics.vtype.Alarm;
 import org.epics.vtype.Display;
 import org.epics.vtype.SimpleValueFormat;
 import org.epics.vtype.Time;
-import org.epics.vtype.*;
 import org.epics.vtype.ValueFormat;
 import org.epics.vtype.ValueUtil;
 
@@ -53,6 +55,8 @@ public class JavaFXProbe extends javafx.application.Application {
     
     PV<?,?> pv;
     private GridPane grid = new GridPane();
+    Scene scene = new Scene(grid, 310, 675);
+    Stage stage;
     private Text pvNameLabel = new Text("PV Name: ");
     private Text pvValueLabel = new Text("Value: ");
     private Text lastErrorLabel = new Text("Last Error: ");
@@ -98,8 +102,10 @@ public class JavaFXProbe extends javafx.application.Application {
     private Canvas canvas = new Canvas(100, 100);
     private GraphicsContext gc = canvas.getGraphicsContext2D();
     private boolean showVisual = true, visualAdded = false;
+    private HBox visualWrapper = new HBox();
     private final SwingNode visualSwingNode = new SwingNode();
     private Text visualText = new Text();
+    private LineGraphApp lineGraphApp = new LineGraphApp();
     
     public void start(){
         this.start(new Stage());
@@ -107,6 +113,8 @@ public class JavaFXProbe extends javafx.application.Application {
     
     @Override
     public void start(Stage primaryStage) {
+        
+        this.stage = primaryStage;
         
         pvNameField.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -166,7 +174,8 @@ public class JavaFXProbe extends javafx.application.Application {
            public void handle(ActionEvent even) {
                if(showVisual && visualAdded) {
                    showVisual = false;
-                   grid.getChildren().remove(grid.getChildren().size() - 1);
+                   grid.getChildren().remove(visualWrapper);
+                   visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
                }
                else {
                    showVisual = true;
@@ -184,28 +193,28 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
         
-        Scene scene = new Scene(grid, 400, 600);
-        
         Separator seperator1 = new Separator();
         Separator seperator2 = new Separator();
-        Separator seperator3 = new Separator();
+        Separator seperator3 = new Separator(); 
+        
+        visualWrapper.setAlignment(Pos.CENTER);
         
         grid.addRow(0, pvNameLabel, pvNameField);
         grid.add(seperator1, 0, 1, 2, 1);
         grid.addRow(2, pvValueLabel, pvValueField);
-        grid.addRow(3, pvTimeLabel, pvTimeField);
-        grid.add(seperator2, 0, 4, 2, 1);
-        grid.addRow(5, pvTypeLabel, pvTypeField);
-        grid.addRow(6, displayLimitsLabel, displayLimitsField);
-        grid.addRow(7, alarmLimitsLabel, alarmLimitsField);
-        grid.addRow(8, warningLimitsLabel, warningLimitsField);
-        grid.addRow(9, controlLimitsLabel, controlLimitsField);
-        grid.addRow(10, unitLabel, unitField);
-        grid.add(seperator3, 0, 11, 2, 1);
-        grid.addRow(12, lastErrorLabel, lastErrorField);
-        grid.addRow(13, writeConnectedLabel, writeConnectedField);
-        grid.addRow(14, connectedLabel, connectedField);
-        grid.add(viewTestButton, 0, 15, 2, 1);
+        grid.addRow(6, pvTimeLabel, pvTimeField);
+        grid.add(seperator2, 0, 7, 2, 1);
+        grid.addRow(8, pvTypeLabel, pvTypeField);
+        grid.addRow(9, displayLimitsLabel, displayLimitsField);
+        grid.addRow(10, alarmLimitsLabel, alarmLimitsField);
+        grid.addRow(11, warningLimitsLabel, warningLimitsField);
+        grid.addRow(12, controlLimitsLabel, controlLimitsField);
+        grid.addRow(13, unitLabel, unitField);
+        grid.add(seperator3, 0, 14, 2, 1);
+        grid.addRow(15, lastErrorLabel, lastErrorField);
+        grid.addRow(16, writeConnectedLabel, writeConnectedField);
+        grid.addRow(17, connectedLabel, connectedField);
+        grid.add(viewTestButton, 0, 3, 2, 1);
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -388,22 +397,48 @@ public class JavaFXProbe extends javafx.application.Application {
     }
     
     private void setVisual(Object value){
+        
         final Object value1 = value;
+        
         if(value instanceof VNumber){
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
                     if(!visualAdded){
-                        grid.add(visualText, 0, 16, 2, 6);
+                        visualWrapper.getChildren().add(visualText);
+                        grid.add(visualWrapper, 0, 4, 2, 2);
                         visualAdded = true;
                     }
                     visualText.setText(ValueUtil.numericValueOf(value1).toString());    
                 }
             });
         }
+        
+        if(value instanceof VNumberArray){
+            
+            lineGraphApp.render((VNumberArray)value);
+            
+            if(!visualAdded){
+                final JRootPane rootPane = lineGraphApp.getRootPane();
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(!visualAdded){
+                            createSwingContent(visualSwingNode, rootPane);
+                            visualWrapper.getChildren().add(visualSwingNode);
+                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            visualAdded = true;
+                            grid.requestLayout();
+                            stage.show();
+                        }
+                    }
+                });
+            }
+        }
     }
     
-    private void createSwingContent(SwingNode swingNode){
-        swingNode.setContent(((new LineGraphApp()).getRootPane()));
+    private void createSwingContent(SwingNode swingNode, JRootPane rootPane){
+        
+        swingNode.setContent(rootPane);
     }
 }

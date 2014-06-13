@@ -55,13 +55,6 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
             }
             
         });
-        EventQueue.invokeLater(new Runnable() {
-
-            @Override
-            public void run() {
-                dataFormulaField.setSelectedIndex(0);
-            }
-        });
     }
     
     protected void onMouseMove(MouseEvent e) {
@@ -81,23 +74,12 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
-        dataFormulaField = new javax.swing.JComboBox<String>();
-        lastErrorField = new javax.swing.JTextField();
         imagePanel = new org.epics.pvmanager.sample.ImagePanel();
         configureButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jLabel1.setText("Data:");
-
-        dataFormulaField.setEditable(true);
-        dataFormulaField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                dataFormulaFieldActionPerformed(evt);
-            }
-        });
-
-        lastErrorField.setEditable(false);
 
         javax.swing.GroupLayout imagePanelLayout = new javax.swing.GroupLayout(imagePanel);
         imagePanel.setLayout(imagePanelLayout);
@@ -125,11 +107,8 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(imagePanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lastErrorField, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(dataFormulaField, 0, 504, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(configureButton)))
                 .addContainerGap())
@@ -140,52 +119,15 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
-                    .addComponent(dataFormulaField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(configureButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(imagePanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(lastErrorField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
         pack();
-    }// </editor-fold>                        
-
-    private void dataFormulaFieldActionPerformed(java.awt.event.ActionEvent evt) {                                                 
-        reconnect();
-    }                                                
-
-    protected void reconnect() {
-        if (pv != null) {
-            pv.close();
-            imagePanel.setImage(null);
-            graph = null;
-        }
-        
-        if (dataFormulaField.getSelectedItem() == null || dataFormulaField.getSelectedItem().toString().trim().isEmpty()) {
-            return;
-        }
-        
-        graph = createExpression(dataFormulaField.getSelectedItem().toString());
-        
-        graph.update(graph.newUpdate().imageHeight(imagePanel.getHeight())
-                .imageWidth(imagePanel.getWidth()));
-        pv = PVManager.read(graph)
-                .notifyOn(swingEDT())
-                .readListener(new PVReaderListener<Graph2DResult>() {
-
-                    @Override
-                    public void pvChanged(PVReaderEvent<Graph2DResult> event) {
-                        setLastError(pv.lastException());
-                        if (pv.getValue() != null) {
-                            BufferedImage image = ValueUtil.toImage(pv.getValue().getImage());
-                            imagePanel.setImage(image);
-                        }
-                    }
-                })
-                .maxRate(ofHertz(50));
-    }
+    }// </editor-fold>                                                                        
     
     protected abstract Graph2DExpression<T> createExpression(String dataFormula);
     protected abstract void openConfigurationDialog();
@@ -194,14 +136,14 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
         openConfigurationDialog();
     }                                               
 
-    private void setLastError(Exception ex) {
-        if (ex != null) {
-            lastErrorField.setText(ex.getMessage());
-            ex.printStackTrace();
-        } else {
-            lastErrorField.setText("");
-        }
-    }
+//    private void setLastError(Exception ex) {
+//        if (ex != null) {
+//            lastErrorField.setText(ex.getMessage());
+//            ex.printStackTrace();
+//        } else {
+//            lastErrorField.setText("");
+//        }
+//    }
     
     public static void main(final Class<? extends BaseGraphApp> clazz) {
         /* Set the Nimbus look and feel */
@@ -243,9 +185,8 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
     
     // Variables declaration - do not modify                     
     private javax.swing.JButton configureButton;
-    protected javax.swing.JComboBox<String> dataFormulaField;
-    private org.epics.pvmanager.sample.ImagePanel imagePanel;
+    protected org.epics.pvmanager.sample.ImagePanel imagePanel;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JTextField lastErrorField;
+    //private javax.swing.JTextField lastErrorField;
     // End of variables declaration                   
 }

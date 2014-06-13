@@ -4,28 +4,31 @@
  */
 package org.epics.javafxprobe;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import org.epics.graphene.InterpolationScheme;
+import org.epics.graphene.LineGraph2DRenderer;
 import org.epics.graphene.LineGraph2DRendererUpdate;
+import org.epics.graphene.Point2DDataset;
+import org.epics.graphene.Point2DDatasets;
 import static org.epics.pvmanager.formula.ExpressionLanguage.formula;
 import static org.epics.pvmanager.graphene.ExpressionLanguage.*;
 import org.epics.pvmanager.graphene.LineGraph2DExpression;
 import org.epics.pvmanager.graphene.ScatterGraph2DExpression;
 import org.epics.pvmanager.sample.LineGraphDialog;
+import org.epics.vtype.VNumberArray;
 
 /**
  *
  * @author carcassi, sjdallst
  */
 public class LineGraphApp extends BaseGraphApp<LineGraph2DRendererUpdate> {
+    
     private InterpolationScheme interpolationScheme = InterpolationScheme.NEAREST_NEIGHBOR;
+    private LineGraph2DRenderer renderer = new LineGraph2DRenderer(imagePanel.getWidth(), imagePanel.getHeight());
 
     public LineGraphApp() {
-        dataFormulaField.setModel(new javax.swing.DefaultComboBoxModel<String>(
-                new String[] { "sim://table",
-                    "sim://gaussianWaveform",
-                    "sim://sineWaveform",
-                    "sim://triangleWaveform",
-                    "=tableOf(column(\"X\", range(-5, 5)), column(\"Y\", 'sim://gaussianWaveform'))"}));
+        imagePanel.setImage(new BufferedImage(imagePanel.getWidth(), imagePanel.getHeight(), BufferedImage.TYPE_INT_ARGB));
     }
     
     public InterpolationScheme getInterpolationScheme() {
@@ -59,6 +62,17 @@ public class LineGraphApp extends BaseGraphApp<LineGraph2DRendererUpdate> {
     
     public static void main(String[] args) {
         main(LineGraphApp.class);
+    }
+    
+    public void render(VNumberArray array) {
+
+        BufferedImage image = new BufferedImage(imagePanel.getWidth(), imagePanel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Point2DDataset data = Point2DDatasets.lineData(array.getData());
+        renderer.update(renderer.newUpdate().interpolation(InterpolationScheme.LINEAR)
+                    .imageHeight(imagePanel.getHeight()).imageWidth(imagePanel.getWidth()));
+        renderer.draw(image.createGraphics(), data);
+        imagePanel.setImage(image);
+
     }
     
 }
