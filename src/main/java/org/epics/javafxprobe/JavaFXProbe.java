@@ -416,8 +416,6 @@ public class JavaFXProbe extends javafx.application.Application {
         
         if(value instanceof VNumberArray){
             
-            lineGraphApp.render((VNumberArray)value);
-            
             if(!visualAdded){
                 final JRootPane rootPane = lineGraphApp.getRootPane();
                 Platform.runLater(new Runnable() {
@@ -434,11 +432,15 @@ public class JavaFXProbe extends javafx.application.Application {
                     }
                 });
             }
+            
+            lineGraphApp.render((VNumberArray)value);
+            
         }
     }
     
     private void createSwingContent(SwingNode swingNode, JRootPane rootPane){
         
         swingNode.setContent(rootPane);
+        
     }
 }
