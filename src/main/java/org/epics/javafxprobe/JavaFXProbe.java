@@ -24,6 +24,9 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.BlendMode;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Paint;
@@ -101,13 +104,13 @@ public class JavaFXProbe extends javafx.application.Application {
     private ValueFormat format = new SimpleValueFormat(3);
     
     private Button viewTestButton = new Button();
-    private Canvas canvas = new Canvas(100, 100);
-    private GraphicsContext gc = canvas.getGraphicsContext2D();
     private boolean showVisual = true, visualAdded = false;
     private HBox visualWrapper = new HBox();
     private final SwingNode visualSwingNode = new SwingNode();
     private Text visualText = new Text();
     private TableView visualTable = new TableView();
+    private ImageView visualImageView = new ImageView();
+    private WritableImage visualImage = new WritableImage(100, 100);
     private LineGraphApp lineGraphApp = new LineGraphApp();
     
     public void start(){
@@ -215,10 +218,6 @@ public class JavaFXProbe extends javafx.application.Application {
                }
            }
         });
-        
-        gc.setFill(Paint.valueOf("white"));
-        gc.fillRect(0, 0, 100, 100);
-        gc.strokeOval(0, 0, 100, 100);
       
         grid.setAlignment(Pos.TOP_LEFT);
         grid.setHgap(10);
@@ -448,22 +447,21 @@ public class JavaFXProbe extends javafx.application.Application {
         
         if(value instanceof VNumberArray){
             
-            if(!visualAdded){
-                final JRootPane rootPane = lineGraphApp.getRootPane();
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        createSwingContent(visualSwingNode, rootPane);
-                        visualWrapper.getChildren().add(visualSwingNode);
+            final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)visualWrapper.getWidth()),
+                                                      Math.max(100, (int)visualWrapper.getHeight()));
+           
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    drawByteArray(pixels, Math.max(100, (int)visualWrapper.getWidth()),
+                                                      Math.max(100, (int)visualWrapper.getHeight()));
+                    if(!visualAdded) {
+                        visualWrapper.getChildren().add(visualImageView);
                         grid.add(visualWrapper, 0, 4, 2, 2);
                         visualAdded = true;
-                        grid.requestLayout();
-                        stage.show();
                     }
-                });
-            }
-            
-            lineGraphApp.render((VNumberArray)value);
+                }
+            });
             
         }
         
@@ -516,12 +514,38 @@ public class JavaFXProbe extends javafx.application.Application {
                 }  
             });    
         }
+        
+        if(value instanceof VImage){
+            final VImage value3 = (VImage)value;
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    drawByteArray(value3.getData(), value3.getWidth(), value3.getHeight());
+                    if(!visualAdded){
+                        visualWrapper.getChildren().add(visualImageView);
+                        grid.add(visualWrapper, 0, 4, 2, 2);
+                        visualAdded = true;
+                    }
+                }
+            });
+        }
          
     }
     
-    private void createSwingContent(SwingNode swingNode, JRootPane rootPane){
-        
-        swingNode.setContent(rootPane);
-        
+    private void drawByteArray(byte[] pixels, int width, int height) {
+        visualImage = new WritableImage(width, height);
+        PixelWriter writer = visualImage.getPixelWriter();
+        for(int i = 0; i < height; i++){
+            for(int j = 0; j < width; j++){
+                int argb = 0;
+                argb += (pixels[i*width*3 + 3*j + 0] & 0xFF) << 0;
+                argb += (pixels[i*width*3 + 3*j + 1] & 0xFF) << 8;
+                argb += (pixels[i*width*3 + 3*j + 2] & 0xFF) << 16;
+                argb += 0xFF << 24;
+                writer.setArgb(j, i, argb);
+            }
+        }
+        visualImageView.setImage(visualImage);
     }
+    
 }

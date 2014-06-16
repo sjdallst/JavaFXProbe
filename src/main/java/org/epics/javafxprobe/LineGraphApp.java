@@ -6,6 +6,7 @@ package org.epics.javafxprobe;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import org.epics.graphene.InterpolationScheme;
 import org.epics.graphene.LineGraph2DRenderer;
 import org.epics.graphene.LineGraph2DRendererUpdate;
@@ -64,15 +65,15 @@ public class LineGraphApp extends BaseGraphApp<LineGraph2DRendererUpdate> {
         main(LineGraphApp.class);
     }
     
-    public void render(VNumberArray array) {
-
-        BufferedImage image = new BufferedImage(imagePanel.getWidth(), imagePanel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+    public byte[] render(VNumberArray array, int width, int height) {
+        
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
         Point2DDataset data = Point2DDatasets.lineData(array.getData());
         renderer.update(renderer.newUpdate().interpolation(InterpolationScheme.LINEAR)
-                    .imageHeight(imagePanel.getHeight()).imageWidth(imagePanel.getWidth()));
+                    .imageHeight(height).imageWidth(width));
         renderer.draw(image.createGraphics(), data);
-        imagePanel.setImage(image);
-
+        byte[] pixels = ((DataBufferByte)image.getRaster().getDataBuffer()).getData();
+        return pixels;
     }
     
 }
