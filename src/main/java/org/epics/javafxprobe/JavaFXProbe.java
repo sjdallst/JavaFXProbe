@@ -6,7 +6,10 @@
 
 package org.epics.javafxprobe;
 
+import java.util.List;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -17,6 +20,8 @@ import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.layout.GridPane;
@@ -24,11 +29,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
 import javax.swing.JRootPane;
-import org.epics.javafxprobe.BaseGraphApp;
-import org.epics.javafxprobe.LineGraphApp;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -37,6 +38,7 @@ import org.epics.pvmanager.PVReaderListener;
 import org.epics.pvmanager.PVWriterEvent;
 import org.epics.pvmanager.PVWriterListener;
 import org.epics.pvmanager.sample.SetupUtil;
+import org.epics.util.array.ListNumber;
 import org.epics.util.time.TimeDuration;
 import static org.epics.util.time.TimeDuration.ofHertz;
 import org.epics.vtype.*;
@@ -105,6 +107,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private HBox visualWrapper = new HBox();
     private final SwingNode visualSwingNode = new SwingNode();
     private Text visualText = new Text();
+    private TableView visualTable = new TableView();
     private LineGraphApp lineGraphApp = new LineGraphApp();
     
     public void start(){
@@ -121,7 +124,36 @@ public class JavaFXProbe extends javafx.application.Application {
             public void handle(ActionEvent event) {
                 if (pv != null) {
                     pv.close();
-                    lastErrorField.setText("");
+                    
+                    if(visualWrapper.getChildren().size() > 0) {
+                        while(visualWrapper.getChildren().size() != 0) {
+                            visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
+                        }
+                    }
+                    if(grid.getChildren().contains(visualWrapper)) {
+                        grid.getChildren().remove(visualWrapper);
+                    }
+                    visualAdded = false;
+                    
+                    pvValueField.clear();
+                    lastErrorField.clear();
+                    metadataField.clear();
+                    pvTimeField.clear();
+                    pvTypeField.clear();
+                    displayLimitsField.clear();
+                    alarmLimitsField.clear();
+                    warningLimitsField.clear();
+                    controlLimitsField.clear();
+                    unitField.clear();
+                    expressionTypeField.clear();
+                    expressionNameField.clear();
+                    channelHandlerField.clear();
+                    usageCountField.clear();
+                    connectedRWField.clear();
+                    channelPropertiesField.clear();
+                    writeConnectedField.clear();
+                    connectedField.clear();
+                    
                 }
 
                 try {
@@ -421,14 +453,12 @@ public class JavaFXProbe extends javafx.application.Application {
                 Platform.runLater(new Runnable() {
                     @Override
                     public void run() {
-                        if(!visualAdded){
-                            createSwingContent(visualSwingNode, rootPane);
-                            visualWrapper.getChildren().add(visualSwingNode);
-                            grid.add(visualWrapper, 0, 4, 2, 2);
-                            visualAdded = true;
-                            grid.requestLayout();
-                            stage.show();
-                        }
+                        createSwingContent(visualSwingNode, rootPane);
+                        visualWrapper.getChildren().add(visualSwingNode);
+                        grid.add(visualWrapper, 0, 4, 2, 2);
+                        visualAdded = true;
+                        grid.requestLayout();
+                        stage.show();
                     }
                 });
             }
@@ -436,6 +466,57 @@ public class JavaFXProbe extends javafx.application.Application {
             lineGraphApp.render((VNumberArray)value);
             
         }
+        
+        if(value instanceof VTable){
+            final VTable value2 = (VTable)value;
+            Platform.runLater(new Runnable(){
+                @Override
+                public void run(){
+                    visualTable = new TableView();
+                    VTable table = (VTable)value2;
+                    TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];        
+                    for(int i = 0; i < table.getColumnCount(); i++) {
+                        tableColumns[i] = new TableColumn(table.getColumnName(i));
+                    }
+                    visualTable.getColumns().addAll(tableColumns);
+                    visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+                    ObservableList<ObservableList> csvData = FXCollections.observableArrayList(); 
+
+                    for(int i = 0; i < table.getRowCount(); i++) {
+                        ObservableList<String> row = FXCollections.observableArrayList();
+                        for(int j = 0; j < table.getColumnCount(); j++) {
+                            if(table.getColumnData(j) instanceof List){
+                                if(i < ((List)(table.getColumnData(j))).size()) {
+                                    row.add(((List)(table.getColumnData(j))).get(i).toString());
+                                }
+                                else {
+                                    row.add("");
+                                }
+                            }
+                            else {
+                                if(i < ((ListNumber)(table.getColumnData(j))).size()) {
+                                    row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
+                                }
+                                else {
+                                    row.add("");
+                                }
+                            }
+                        }
+                        csvData.add(row); // add each row to cvsData
+                    }
+
+                    visualTable.setItems(csvData); // finally add data to tableview
+                
+                    if(!visualAdded) {
+                        visualWrapper.getChildren().add(visualTable);
+                        grid.add(visualWrapper, 0, 4, 2, 2);
+                        visualAdded = true;
+                    }
+                }  
+            });    
+        }
+         
     }
     
     private void createSwingContent(SwingNode swingNode, JRootPane rootPane){
