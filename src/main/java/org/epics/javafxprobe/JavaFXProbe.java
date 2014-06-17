@@ -8,6 +8,7 @@ package org.epics.javafxprobe;
 
 import java.util.List;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingNode;
@@ -18,6 +19,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
@@ -104,9 +106,11 @@ public class JavaFXProbe extends javafx.application.Application {
     private ValueFormat format = new SimpleValueFormat(3);
     
     private Button viewTestButton = new Button();
-    private boolean showVisual = true, visualAdded = false;
+    private ChoiceBox visualChooser = new ChoiceBox();
+    private boolean showChooser = false, chooserAdded = false;
+    private boolean showVisual = false, visualAdded = false;
+    private boolean showText = false, showLineGraph = false, showImage = false, showTable = false;
     private HBox visualWrapper = new HBox();
-    private final SwingNode visualSwingNode = new SwingNode();
     private Text visualText = new Text();
     private TableView visualTable = new TableView();
     private ImageView visualImageView = new ImageView();
@@ -128,34 +132,15 @@ public class JavaFXProbe extends javafx.application.Application {
                 if (pv != null) {
                     pv.close();
                     
-                    if(visualWrapper.getChildren().size() > 0) {
-                        while(visualWrapper.getChildren().size() != 0) {
-                            visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
-                        }
-                    }
-                    if(grid.getChildren().contains(visualWrapper)) {
-                        grid.getChildren().remove(visualWrapper);
-                    }
-                    visualAdded = false;
+                    hideVisual();
                     
-                    pvValueField.clear();
-                    lastErrorField.clear();
-                    metadataField.clear();
-                    pvTimeField.clear();
-                    pvTypeField.clear();
-                    displayLimitsField.clear();
-                    alarmLimitsField.clear();
-                    warningLimitsField.clear();
-                    controlLimitsField.clear();
-                    unitField.clear();
-                    expressionTypeField.clear();
-                    expressionNameField.clear();
-                    channelHandlerField.clear();
-                    usageCountField.clear();
-                    connectedRWField.clear();
-                    channelPropertiesField.clear();
-                    writeConnectedField.clear();
-                    connectedField.clear();
+                    if(grid.getChildren().contains(visualChooser) && chooserAdded){
+                        grid.getChildren().remove(visualChooser);
+                        showChooser = true;
+                        chooserAdded = false;
+                    }
+                    
+                    clearFields();
                     
                 }
 
@@ -174,7 +159,10 @@ public class JavaFXProbe extends javafx.application.Application {
                                         setMetadata(ValueUtil.displayOf(value));
                                         setAlarm(ValueUtil.alarmOf(value));
                                         setConnected(pv.isConnected());
-                                        if(showVisual && value != null){
+                                        if(value != null && !chooserAdded){
+                                            setChoiceBox(value);
+                                        }
+                                        if(showVisual && (value != null)){
                                             setVisual(value);
                                         }
                                     }
@@ -209,6 +197,7 @@ public class JavaFXProbe extends javafx.application.Application {
            public void handle(ActionEvent even) {
                if(showVisual && visualAdded) {
                    showVisual = false;
+                   visualAdded = false;
                    grid.getChildren().remove(visualWrapper);
                    visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
                }
@@ -245,7 +234,7 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.addRow(15, lastErrorLabel, lastErrorField);
         grid.addRow(16, writeConnectedLabel, writeConnectedField);
         grid.addRow(17, connectedLabel, connectedField);
-        grid.add(viewTestButton, 0, 3, 2, 1);
+        //grid.add(viewTestButton, 0, 3, 2, 1);
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -435,84 +424,92 @@ public class JavaFXProbe extends javafx.application.Application {
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    if(!visualAdded){
-                        visualWrapper.getChildren().add(visualText);
-                        grid.add(visualWrapper, 0, 4, 2, 2);
-                        visualAdded = true;
+                    if(!visualAdded) {
+                        if(showText) {
+                            visualWrapper.getChildren().add(visualText);
+                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            visualAdded = true;
+                        }
                     }
-                    visualText.setText(ValueUtil.numericValueOf(value1).toString());    
+                    if(showText) {
+                    visualText.setText(ValueUtil.numericValueOf(value1).toString());
+                    }
                 }
             });
         }
         
         if(value instanceof VNumberArray){
             
-            final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)visualWrapper.getWidth()),
-                                                      Math.max(100, (int)visualWrapper.getHeight()));
-           
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    drawByteArray(pixels, Math.max(100, (int)visualWrapper.getWidth()),
-                                                      Math.max(100, (int)visualWrapper.getHeight()));
-                    if(!visualAdded) {
-                        visualWrapper.getChildren().add(visualImageView);
-                        grid.add(visualWrapper, 0, 4, 2, 2);
-                        visualAdded = true;
+            if(showLineGraph){
+                final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)visualWrapper.getWidth()),
+                                                          Math.max(100, (int)visualWrapper.getHeight()));
+
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        drawByteArray(pixels, Math.max(100, (int)visualWrapper.getWidth()),
+                                                          Math.max(100, (int)visualWrapper.getHeight()));
+                        if(!visualAdded) {
+                            visualWrapper.getChildren().add(visualImageView);
+                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            visualAdded = true;
+                        }
                     }
-                }
-            });
+                });
+            }
             
         }
         
         if(value instanceof VTable){
-            final VTable value2 = (VTable)value;
-            Platform.runLater(new Runnable(){
-                @Override
-                public void run(){
-                    visualTable = new TableView();
-                    VTable table = (VTable)value2;
-                    TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];        
-                    for(int i = 0; i < table.getColumnCount(); i++) {
-                        tableColumns[i] = new TableColumn(table.getColumnName(i));
-                    }
-                    visualTable.getColumns().addAll(tableColumns);
-                    visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-
-                    ObservableList<ObservableList> csvData = FXCollections.observableArrayList(); 
-
-                    for(int i = 0; i < table.getRowCount(); i++) {
-                        ObservableList<String> row = FXCollections.observableArrayList();
-                        for(int j = 0; j < table.getColumnCount(); j++) {
-                            if(table.getColumnData(j) instanceof List){
-                                if(i < ((List)(table.getColumnData(j))).size()) {
-                                    row.add(((List)(table.getColumnData(j))).get(i).toString());
-                                }
-                                else {
-                                    row.add("");
-                                }
-                            }
-                            else {
-                                if(i < ((ListNumber)(table.getColumnData(j))).size()) {
-                                    row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
-                                }
-                                else {
-                                    row.add("");
-                                }
-                            }
+            if(showTable){
+                final VTable value2 = (VTable)value;
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run(){
+                        visualTable = new TableView();
+                        VTable table = (VTable)value2;
+                        TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];        
+                        for(int i = 0; i < table.getColumnCount(); i++) {
+                            tableColumns[i] = new TableColumn(table.getColumnName(i));
                         }
-                        csvData.add(row); // add each row to cvsData
-                    }
+                        visualTable.getColumns().addAll(tableColumns);
+                        visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-                    visualTable.setItems(csvData); // finally add data to tableview
-                
-                    if(!visualAdded) {
-                        visualWrapper.getChildren().add(visualTable);
-                        grid.add(visualWrapper, 0, 4, 2, 2);
-                        visualAdded = true;
-                    }
-                }  
-            });    
+                        ObservableList<ObservableList> csvData = FXCollections.observableArrayList(); 
+
+                        for(int i = 0; i < table.getRowCount(); i++) {
+                            ObservableList<String> row = FXCollections.observableArrayList();
+                            for(int j = 0; j < table.getColumnCount(); j++) {
+                                if(table.getColumnData(j) instanceof List){
+                                    if(i < ((List)(table.getColumnData(j))).size()) {
+                                        row.add(((List)(table.getColumnData(j))).get(i).toString());
+                                    }
+                                    else {
+                                        row.add("");
+                                    }
+                                }
+                                else {
+                                    if(i < ((ListNumber)(table.getColumnData(j))).size()) {
+                                        row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
+                                    }
+                                    else {
+                                        row.add("");
+                                    }
+                                }
+                            }
+                            csvData.add(row); // add each row to cvsData
+                        }
+
+                        visualTable.setItems(csvData); // finally add data to tableview
+
+                        if(!visualAdded) {
+                            visualWrapper.getChildren().add(visualTable);
+                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            visualAdded = true;
+                        }
+                    }  
+                });    
+            }
         }
         
         if(value instanceof VImage){
@@ -532,6 +529,114 @@ public class JavaFXProbe extends javafx.application.Application {
          
     }
     
+    private void setChoiceBox(Object value){
+        
+        if(value instanceof VNumber) {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run(){
+                    visualChooser.setItems(FXCollections.observableArrayList(
+                        "Hide", "Value"));
+                    visualChooser.getSelectionModel().selectedIndexProperty().addListener(
+                        (ObservableValue<? extends Number> ov,
+                            Number oldValue, Number newValue) -> {
+                                switch(newValue.intValue()){
+                                    case 0:
+                                        hideVisual();
+                                        break;
+                                    case 1:
+                                        showVisual = true;
+                                        showText = true;
+                                        break;
+                                }
+                        });
+                    visualChooser.getSelectionModel().selectFirst();
+                    grid.add(visualChooser, 0, 3, 2, 1);
+                    chooserAdded = true;
+                }
+            });
+        }
+        
+        if(value instanceof VNumberArray) {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run(){
+                    visualChooser.setItems(FXCollections.observableArrayList(
+                        "Hide", "LineGraph"));
+                    visualChooser.getSelectionModel().selectedIndexProperty().addListener(
+                        (ObservableValue<? extends Number> ov,
+                            Number oldValue, Number newValue) -> {
+                                switch(newValue.intValue()){
+                                    case 0:
+                                        hideVisual();
+                                        break;
+                                    case 1:
+                                        showVisual = true;
+                                        showLineGraph = true;
+                                        break;
+                                }
+                        });
+                    visualChooser.getSelectionModel().selectFirst();
+                    grid.add(visualChooser, 0, 3, 2, 1);
+                    chooserAdded = true;
+                }
+            });
+        }
+        
+        if(value instanceof VTable) {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run(){
+                    visualChooser.setItems(FXCollections.observableArrayList(
+                        "Hide", "Table"));
+                    visualChooser.getSelectionModel().selectedIndexProperty().addListener(
+                        (ObservableValue<? extends Number> ov,
+                            Number oldValue, Number newValue) -> {
+                                switch(newValue.intValue()){
+                                    case 0:
+                                        hideVisual();
+                                        break;
+                                    case 1:
+                                        showVisual = true;
+                                        showTable = true;
+                                        break;
+                                }
+                        });
+                    visualChooser.getSelectionModel().selectFirst();
+                    grid.add(visualChooser, 0, 3, 2, 1);
+                    chooserAdded = true;
+                }
+            });
+        }
+        
+        if(value instanceof VImage) {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run(){
+                    visualChooser.setItems(FXCollections.observableArrayList(
+                        "Hide", "Image"));
+                    visualChooser.getSelectionModel().selectedIndexProperty().addListener(
+                        (ObservableValue<? extends Number> ov,
+                            Number oldValue, Number newValue) -> {
+                                switch(newValue.intValue()){
+                                    case 0:
+                                        hideVisual();
+                                        break;
+                                    case 1:
+                                        showVisual = true;
+                                        showImage = true;
+                                        break;
+                                }
+                        });
+                    visualChooser.getSelectionModel().selectFirst();
+                    grid.add(visualChooser, 0, 3, 2, 1);
+                    chooserAdded = true;
+                }
+            });
+        }
+        
+    }
+    
     private void drawByteArray(byte[] pixels, int width, int height) {
         visualImage = new WritableImage(width, height);
         PixelWriter writer = visualImage.getPixelWriter();
@@ -548,4 +653,48 @@ public class JavaFXProbe extends javafx.application.Application {
         visualImageView.setImage(visualImage);
     }
     
+    private void hideVisual(){
+        showVisual = visualAdded = false;
+        
+        showText = showLineGraph = showImage = showTable = false;
+        
+        if(grid.getChildren().contains(visualWrapper)){
+            grid.getChildren().remove(visualWrapper);
+        }
+        
+        while(visualWrapper.getChildren().size() != 0) {
+            visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
+        }
+        
+    }
+    
+    private void clearFields(){
+        pvValueField.clear();
+        lastErrorField.clear();
+        metadataField.clear();
+        pvTimeField.clear();
+        pvTypeField.clear();
+        displayLimitsField.clear();
+        alarmLimitsField.clear();
+        warningLimitsField.clear();
+        controlLimitsField.clear();
+        unitField.clear();
+        expressionTypeField.clear();
+        expressionNameField.clear();
+        channelHandlerField.clear();
+        usageCountField.clear();
+        connectedRWField.clear();
+        channelPropertiesField.clear();
+        writeConnectedField.clear();
+        connectedField.clear();
+    }
+    
+    private void resetChoiceBox(){
+        visualChooser = new ChoiceBox();
+        if(grid.getChildren().contains(visualChooser)){
+            grid.getChildren().remove(visualChooser);
+        }
+        showChooser = true;
+        chooserAdded = false;
+    }
 }
