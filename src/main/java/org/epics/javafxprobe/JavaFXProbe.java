@@ -61,61 +61,60 @@ import org.epics.vtype.ValueUtil;
 public class JavaFXProbe extends javafx.application.Application {
     
     PV<?,?> pv;
-    private GridPane grid = new GridPane();
+    private final GridPane grid = new GridPane();
     Scene scene = new Scene(grid, 310, 675);
     Stage stage;
-    private Text pvNameLabel = new Text("PV Name: ");
-    private Text pvValueLabel = new Text("Value: ");
-    private Text lastErrorLabel = new Text("Last Error: ");
-    private Text metadataLabel = new Text("Meta Data: ");
-    private Text pvTimeLabel = new Text("Time: ");
-    private Text pvTypeLabel = new Text("Type: ");
-    private Text displayLimitsLabel = new Text("Display Limits: ");
-    private Text alarmLimitsLabel = new Text("Alarm Limits: ");
-    private Text warningLimitsLabel = new Text("Warning Limits: ");
-    private Text controlLimitsLabel = new Text("Control Limits: ");
-    private Text unitLabel = new Text("Unit: ");
-    private Text expressionTypeLabel = new Text("Expression Type: ");
-    private Text expressionNameLabel = new Text("Expression Name: ");
-    private Text channelHandlerLabel = new Text("Channel Handler Name: ");
-    private Text usageCountLabel = new Text("Usage Count: ");
-    private Text connectedRWLabel = new Text("Connected (R-W): ");
-    private Text channelPropertiesLabel = new Text("Channel Properties: ");
-    private Text writeConnectedLabel = new Text("Write Connected: ");
-    private Text connectedLabel = new Text("Connected: ");
-    private TextField pvNameField = new TextField();
-    private TextField pvValueField = new TextField();
-    private TextField lastErrorField = new TextField();
-    private TextField metadataField = new TextField();
-    private TextField pvTimeField = new TextField();
-    private TextField pvTypeField = new TextField();
-    private TextField displayLimitsField = new TextField();
-    private TextField alarmLimitsField = new TextField();
-    private TextField warningLimitsField = new TextField();
-    private TextField controlLimitsField = new TextField();
-    private TextField unitField = new TextField();
-    private TextField expressionTypeField = new TextField();
-    private TextField expressionNameField = new TextField();
-    private TextField channelHandlerField = new TextField();
-    private TextField usageCountField = new TextField();
-    private TextField connectedRWField = new TextField();
-    private TextField channelPropertiesField = new TextField();
-    private TextField writeConnectedField = new TextField();
-    private TextField connectedField = new TextField();
-    private Slider indicator = new Slider();
-    private ValueFormat format = new SimpleValueFormat(3);
+    private final Text pvNameLabel = new Text("PV Name: ");
+    private final Text pvValueLabel = new Text("Value: ");
+    private final Text lastErrorLabel = new Text("Last Error: ");
+    private final Text metadataLabel = new Text("Meta Data: ");
+    private final Text pvTimeLabel = new Text("Time: ");
+    private final Text pvTypeLabel = new Text("Type: ");
+    private final Text displayLimitsLabel = new Text("Display Limits: ");
+    private final Text alarmLimitsLabel = new Text("Alarm Limits: ");
+    private final Text warningLimitsLabel = new Text("Warning Limits: ");
+    private final Text controlLimitsLabel = new Text("Control Limits: ");
+    private final Text unitLabel = new Text("Unit: ");
+    private final Text expressionTypeLabel = new Text("Expression Type: ");
+    private final Text expressionNameLabel = new Text("Expression Name: ");
+    private final Text channelHandlerLabel = new Text("Channel Handler Name: ");
+    private final Text usageCountLabel = new Text("Usage Count: ");
+    private final Text connectedRWLabel = new Text("Connected (R-W): ");
+    private final Text channelPropertiesLabel = new Text("Channel Properties: ");
+    private final Text writeConnectedLabel = new Text("Write Connected: ");
+    private final Text connectedLabel = new Text("Connected: ");
+    private final TextField pvNameField = new TextField();
+    private final TextField pvValueField = new TextField();
+    private final TextField lastErrorField = new TextField();
+    private final TextField metadataField = new TextField();
+    private final TextField pvTimeField = new TextField();
+    private final TextField pvTypeField = new TextField();
+    private final TextField displayLimitsField = new TextField();
+    private final TextField alarmLimitsField = new TextField();
+    private final TextField warningLimitsField = new TextField();
+    private final TextField controlLimitsField = new TextField();
+    private final TextField unitField = new TextField();
+    private final TextField expressionTypeField = new TextField();
+    private final TextField expressionNameField = new TextField();
+    private final TextField channelHandlerField = new TextField();
+    private final TextField usageCountField = new TextField();
+    private final TextField connectedRWField = new TextField();
+    private final TextField channelPropertiesField = new TextField();
+    private final TextField writeConnectedField = new TextField();
+    private final TextField connectedField = new TextField();
+    private final Slider indicator = new Slider();
+    private final ValueFormat format = new SimpleValueFormat(3);
     
-    private Button viewTestButton = new Button();
     private ChoiceBox visualChooser = new ChoiceBox();
-    private boolean showChooser = false, chooserAdded = false;
+    private boolean chooserAdded = false;
     private boolean showVisual = false, visualAdded = false;
     private boolean showText = false, showLineGraph = false, showImage = false, showTable = false;
-    private HBox visualWrapper = new HBox();
-    private Text visualText = new Text();
+    private final HBox visualWrapper = new HBox();
+    private final Text visualText = new Text();
     private TableView visualTable = new TableView();
-    private ImageView visualImageView = new ImageView();
+    private final ImageView visualImageView = new ImageView();
     private WritableImage visualImage = new WritableImage(100, 100);
-    private LineGraphApp lineGraphApp = new LineGraphApp();
+    private final LineGraphApp lineGraphApp = new LineGraphApp();
     
     public void start(){
         this.start(new Stage());
@@ -126,115 +125,8 @@ public class JavaFXProbe extends javafx.application.Application {
         
         this.stage = primaryStage;
         
-        pvNameField.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                if (pv != null) {
-                    pv.close();
-                    
-                    hideVisual();
-                    
-                    if(grid.getChildren().contains(visualChooser) && chooserAdded){
-                        grid.getChildren().remove(visualChooser);
-                        showChooser = true;
-                        chooserAdded = false;
-                    }
-                    
-                    clearFields();
-                    
-                }
-
-                try {
-                    pv = PVManager.readAndWrite(channel(pvNameField.getText()))
-                            .timeout(TimeDuration.ofSeconds(5))
-                            .readListener(new PVReaderListener<Object>() {
-                                    @Override
-                                    public void pvChanged(PVReaderEvent<Object> event) {
-                                        setLastError(pv.lastException());
-                                        Object value = pv.getValue();
-                                        setTextValue(format.format(value));
-                                        setType(ValueUtil.typeOf(value));
-                                        setTime(ValueUtil.timeOf(value));
-                                        setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                        setMetadata(ValueUtil.displayOf(value));
-                                        setAlarm(ValueUtil.alarmOf(value));
-                                        setConnected(pv.isConnected());
-                                        if(value != null && !chooserAdded){
-                                            setChoiceBox(value);
-                                        }
-                                        if(showVisual && (value != null)){
-                                            setVisual(value);
-                                        }
-                                    }
-                                })
-                            .writeListener(new PVWriterListener<Object>() {
-
-                                @Override
-                                public void pvChanged(PVWriterEvent<Object> event) {
-                                    setWriteConnected(pv.isWriteConnected());
-                                }
-                            })
-                            .asynchWriteAndMaxReadRate(ofHertz(10));
-                } catch (RuntimeException ex) {
-                    setLastError(ex);
-                }
-            }
-        });
-        
-        pvValueField.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                pvValueField.setEditable(false);
-                pvValueField.setFocusTraversable(false);
-                pvValueField.setBlendMode(BlendMode.DARKEN);
-                pvValueField.clear();
-            }
-        });
-        
-        viewTestButton.setText("Test");
-        viewTestButton.setOnAction(new EventHandler<ActionEvent>() {
-           @Override
-           public void handle(ActionEvent even) {
-               if(showVisual && visualAdded) {
-                   showVisual = false;
-                   visualAdded = false;
-                   grid.getChildren().remove(visualWrapper);
-                   visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
-               }
-               else {
-                   showVisual = true;
-                   visualAdded = false;
-               }
-           }
-        });
-      
-        grid.setAlignment(Pos.TOP_LEFT);
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(25, 25, 25, 25));
-        
-        Separator seperator1 = new Separator();
-        Separator seperator2 = new Separator();
-        Separator seperator3 = new Separator(); 
-        
-        visualWrapper.setAlignment(Pos.CENTER);
-        
-        grid.addRow(0, pvNameLabel, pvNameField);
-        grid.add(seperator1, 0, 1, 2, 1);
-        grid.addRow(2, pvValueLabel, pvValueField);
-        grid.addRow(6, pvTimeLabel, pvTimeField);
-        grid.add(seperator2, 0, 7, 2, 1);
-        grid.addRow(8, pvTypeLabel, pvTypeField);
-        grid.addRow(9, displayLimitsLabel, displayLimitsField);
-        grid.addRow(10, alarmLimitsLabel, alarmLimitsField);
-        grid.addRow(11, warningLimitsLabel, warningLimitsField);
-        grid.addRow(12, controlLimitsLabel, controlLimitsField);
-        grid.addRow(13, unitLabel, unitField);
-        grid.add(seperator3, 0, 14, 2, 1);
-        grid.addRow(15, lastErrorLabel, lastErrorField);
-        grid.addRow(16, writeConnectedLabel, writeConnectedField);
-        grid.addRow(17, connectedLabel, connectedField);
-        //grid.add(viewTestButton, 0, 3, 2, 1);
+        //instantiate grid, set actions for fields, add components to grid.
+        initComponents();
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Probe");
@@ -252,11 +144,8 @@ public class JavaFXProbe extends javafx.application.Application {
      */
     public static void main(String[] args) {
         SetupUtil.defaultCASetup();
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                new JavaFXProbe().start();
-            }
+        Platform.runLater(() -> {
+            new JavaFXProbe().start();
         }); 
     }
     
@@ -463,68 +352,64 @@ public class JavaFXProbe extends javafx.application.Application {
         if(value instanceof VTable){
             if(showTable){
                 final VTable value2 = (VTable)value;
-                Platform.runLater(new Runnable(){
-                    @Override
-                    public void run(){
-                        visualTable = new TableView();
-                        VTable table = (VTable)value2;
-                        TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];        
-                        for(int i = 0; i < table.getColumnCount(); i++) {
-                            tableColumns[i] = new TableColumn(table.getColumnName(i));
-                        }
-                        visualTable.getColumns().addAll(tableColumns);
-                        visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-
-                        ObservableList<ObservableList> csvData = FXCollections.observableArrayList(); 
-
-                        for(int i = 0; i < table.getRowCount(); i++) {
-                            ObservableList<String> row = FXCollections.observableArrayList();
-                            for(int j = 0; j < table.getColumnCount(); j++) {
-                                if(table.getColumnData(j) instanceof List){
-                                    if(i < ((List)(table.getColumnData(j))).size()) {
-                                        row.add(((List)(table.getColumnData(j))).get(i).toString());
-                                    }
-                                    else {
-                                        row.add("");
-                                    }
+                Platform.runLater(() -> {
+                    visualTable = new TableView();
+                    VTable table = (VTable)value2;
+                    TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];
+                    for(int i = 0; i < table.getColumnCount(); i++) {
+                        tableColumns[i] = new TableColumn(table.getColumnName(i));
+                    }
+                    visualTable.getColumns().addAll(tableColumns);
+                    visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+                    
+                    ObservableList<ObservableList> csvData = FXCollections.observableArrayList();
+                    
+                    for(int i = 0; i < table.getRowCount(); i++) {
+                        ObservableList<String> row = FXCollections.observableArrayList();
+                        for(int j = 0; j < table.getColumnCount(); j++) {
+                            if(table.getColumnData(j) instanceof List){
+                                if(i < ((List)(table.getColumnData(j))).size()) {
+                                    row.add(((List)(table.getColumnData(j))).get(i).toString());
                                 }
                                 else {
-                                    if(i < ((ListNumber)(table.getColumnData(j))).size()) {
-                                        row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
-                                    }
-                                    else {
-                                        row.add("");
-                                    }
+                                    row.add("");
                                 }
                             }
-                            csvData.add(row); // add each row to cvsData
+                            else {
+                                if(i < ((ListNumber)(table.getColumnData(j))).size()) {
+                                    row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
+                                }
+                                else {
+                                    row.add("");
+                                }
+                            }
                         }
-
-                        visualTable.setItems(csvData); // finally add data to tableview
-
-                        if(!visualAdded) {
-                            visualWrapper.getChildren().add(visualTable);
-                            grid.add(visualWrapper, 0, 4, 2, 2);
-                            visualAdded = true;
-                        }
-                    }  
+                        csvData.add(row); // add each row to cvsData
+                    }
+                    
+                    visualTable.setItems(csvData); // finally add data to tableview
+                    
+                    if(!visualAdded) {
+                        visualWrapper.getChildren().add(visualTable);
+                        grid.add(visualWrapper, 0, 4, 2, 2);
+                        visualAdded = true;  
+                    }
                 });    
             }
         }
         
         if(value instanceof VImage){
-            final VImage value3 = (VImage)value;
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
+            if(showImage){
+                final VImage value3 = (VImage)value;
+                Platform.runLater(() -> {
                     drawByteArray(value3.getData(), value3.getWidth(), value3.getHeight());
                     if(!visualAdded){
                         visualWrapper.getChildren().add(visualImageView);
                         grid.add(visualWrapper, 0, 4, 2, 2);
                         visualAdded = true;
                     }
-                }
-            });
+                });
+            }
         }
          
     }
@@ -690,11 +575,101 @@ public class JavaFXProbe extends javafx.application.Application {
     }
     
     private void resetChoiceBox(){
-        visualChooser = new ChoiceBox();
+        
         if(grid.getChildren().contains(visualChooser)){
             grid.getChildren().remove(visualChooser);
         }
-        showChooser = true;
+        
+        visualChooser = new ChoiceBox();
         chooserAdded = false;
+    }
+    
+    private void initComponents(){
+        pvNameField.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                
+                //case when user switches channels while one is still open.
+                if (pv != null) {
+                    pv.close();
+                    hideVisual();
+                    resetChoiceBox();
+                    clearFields();
+                }
+
+                //attempt to set up a channel from user input
+                try {
+                    pv = PVManager.readAndWrite(channel(pvNameField.getText()))
+                            .timeout(TimeDuration.ofSeconds(5))
+                            .readListener(new PVReaderListener<Object>() {
+                                    @Override
+                                    public void pvChanged(PVReaderEvent<Object> event) {
+                                        setLastError(pv.lastException());
+                                        Object value = pv.getValue();
+                                        setTextValue(format.format(value));
+                                        setType(ValueUtil.typeOf(value));
+                                        setTime(ValueUtil.timeOf(value));
+                                        setIndicator(ValueUtil.normalizedNumericValueOf(value));
+                                        setMetadata(ValueUtil.displayOf(value));
+                                        setAlarm(ValueUtil.alarmOf(value));
+                                        setConnected(pv.isConnected());
+                                        if(value != null && !chooserAdded){
+                                            setChoiceBox(value);
+                                        }
+                                        if(showVisual && (value != null)){
+                                            setVisual(value);
+                                        }
+                                    }
+                                })
+                            .writeListener(new PVWriterListener<Object>() {
+                                @Override
+                                public void pvChanged(PVWriterEvent<Object> event) {
+                                    setWriteConnected(pv.isWriteConnected());
+                                }
+                            })
+                            .asynchWriteAndMaxReadRate(ofHertz(10));
+                } 
+                catch (RuntimeException ex) { //if the channel does not work, then throw an error.
+                    setLastError(ex);
+                }
+            }
+        });
+        
+        pvValueField.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                pvValueField.setEditable(false);
+                pvValueField.setFocusTraversable(false);
+                pvValueField.setBlendMode(BlendMode.DARKEN);
+                pvValueField.clear();
+            }
+        });
+      
+        grid.setAlignment(Pos.TOP_LEFT);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(25, 25, 25, 25));
+        
+        Separator seperator1 = new Separator();
+        Separator seperator2 = new Separator();
+        Separator seperator3 = new Separator(); 
+        
+        visualWrapper.setAlignment(Pos.CENTER);
+        
+        grid.addRow(0, pvNameLabel, pvNameField);
+        grid.add(seperator1, 0, 1, 2, 1);
+        grid.addRow(2, pvValueLabel, pvValueField);
+        grid.addRow(6, pvTimeLabel, pvTimeField);
+        grid.add(seperator2, 0, 7, 2, 1);
+        grid.addRow(8, pvTypeLabel, pvTypeField);
+        grid.addRow(9, displayLimitsLabel, displayLimitsField);
+        grid.addRow(10, alarmLimitsLabel, alarmLimitsField);
+        grid.addRow(11, warningLimitsLabel, warningLimitsField);
+        grid.addRow(12, controlLimitsLabel, controlLimitsField);
+        grid.addRow(13, unitLabel, unitField);
+        grid.add(seperator3, 0, 14, 2, 1);
+        grid.addRow(15, lastErrorLabel, lastErrorField);
+        grid.addRow(16, writeConnectedLabel, writeConnectedField);
+        grid.addRow(17, connectedLabel, connectedField);
     }
 }
