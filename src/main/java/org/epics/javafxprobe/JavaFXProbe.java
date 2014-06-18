@@ -29,8 +29,11 @@ import javafx.scene.effect.BlendMode;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -62,7 +65,7 @@ public class JavaFXProbe extends javafx.application.Application {
     
     PV<?,?> pv;
     private final GridPane grid = new GridPane();
-    Scene scene = new Scene(grid, 310, 675);
+    Scene scene = new Scene(grid, 310, 650);
     Stage stage;
     private final Text pvNameLabel = new Text("PV Name: ");
     private final Text pvValueLabel = new Text("Value: ");
@@ -319,6 +322,8 @@ public class JavaFXProbe extends javafx.application.Application {
                             grid.add(visualWrapper, 0, 4, 2, 2);
                             visualAdded = true;
                         }
+                        grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
+                        grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
                     }
                     if(showText) {
                     visualText.setText(ValueUtil.numericValueOf(value1).toString());
@@ -330,17 +335,19 @@ public class JavaFXProbe extends javafx.application.Application {
         if(value instanceof VNumberArray){
             
             if(showLineGraph){
-                final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)visualWrapper.getWidth()),
-                                                          Math.max(100, (int)visualWrapper.getHeight()));
+                final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)(grid.getWidth() - 50)),
+                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
 
                 Platform.runLater(new Runnable() {
                     @Override
                     public void run() {
-                        drawByteArray(pixels, Math.max(100, (int)visualWrapper.getWidth()),
-                                                          Math.max(100, (int)visualWrapper.getHeight()));
+                        drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
+                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
                         if(!visualAdded) {
                             visualWrapper.getChildren().add(visualImageView);
                             grid.add(visualWrapper, 0, 4, 2, 2);
+                            grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
+                            grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
                             visualAdded = true;
                         }
                     }
@@ -393,6 +400,8 @@ public class JavaFXProbe extends javafx.application.Application {
                         visualWrapper.getChildren().add(visualTable);
                         grid.add(visualWrapper, 0, 4, 2, 2);
                         visualAdded = true;  
+                        grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
+                        grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
                     }
                 });    
             }
@@ -407,6 +416,8 @@ public class JavaFXProbe extends javafx.application.Application {
                         visualWrapper.getChildren().add(visualImageView);
                         grid.add(visualWrapper, 0, 4, 2, 2);
                         visualAdded = true;
+                        grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
+                        grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
                     }
                 });
             }
@@ -551,6 +562,8 @@ public class JavaFXProbe extends javafx.application.Application {
             visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
         }
         
+        grid.getRowConstraints().get(4).setVgrow(Priority.NEVER);
+        
     }
     
     private void clearFields(){
@@ -671,5 +684,15 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.addRow(15, lastErrorLabel, lastErrorField);
         grid.addRow(16, writeConnectedLabel, writeConnectedField);
         grid.addRow(17, connectedLabel, connectedField);
+        
+        ColumnConstraints column1 = new ColumnConstraints(100,100,Double.MAX_VALUE);
+        ColumnConstraints column2 = new ColumnConstraints(100, 100, Double.MAX_VALUE);
+        column2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(column1, column2);
+        
+        for(int i = 0; i < 18; i++){
+            grid.getRowConstraints().add(new RowConstraints());
+        }
+        
     }
 }
