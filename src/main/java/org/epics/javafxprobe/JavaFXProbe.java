@@ -328,7 +328,7 @@ public class JavaFXProbe extends javafx.application.Application {
                         grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
                     }
                     if(showText) {
-                    visualText.setText(ValueUtil.numericValueOf(value1).toString());
+                        visualText.setText(ValueUtil.numericValueOf(value1).toString());
                     }
                 }
             });
@@ -463,6 +463,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
+                                        swapVisual();
                                         showVisual = true;
                                         showText = true;
                                         break;
@@ -489,10 +490,12 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
+                                        swapVisual();
                                         showVisual = true;
                                         showLineGraph = true;
                                         break;
                                     case 2:
+                                        swapVisual();
                                         showVisual = true;
                                         showIntensityGraph = true;
                                         break;
@@ -519,6 +522,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
+                                        swapVisual();
                                         showVisual = true;
                                         showTable = true;
                                         break;
@@ -545,6 +549,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
+                                        swapVisual();
                                         showVisual = true;
                                         showImage = true;
                                         break;
@@ -590,6 +595,20 @@ public class JavaFXProbe extends javafx.application.Application {
         
         grid.getRowConstraints().get(4).setVgrow(Priority.NEVER);
         
+    }
+    
+    private void swapVisual(){
+        showVisual = visualAdded = false;
+        
+        showText = showLineGraph = showImage = showTable = showIntensityGraph = false;
+        
+        if(grid.getChildren().contains(visualWrapper)){
+            grid.getChildren().remove(visualWrapper);
+        }
+        
+        while(visualWrapper.getChildren().size() != 0) {
+            visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
+        }
     }
     
     private void clearFields(){

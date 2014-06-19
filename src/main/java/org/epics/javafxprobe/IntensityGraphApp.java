@@ -22,6 +22,14 @@ import org.epics.pvmanager.graphene.LineGraph2DExpression;
 import org.epics.pvmanager.graphene.ScatterGraph2DExpression;
 import org.epics.pvmanager.sample.LineGraphDialog;
 import org.epics.vtype.VNumberArray;
+import org.epics.graphene.IntensityGraph2DRenderer;
+import org.epics.graphene.IntensityGraph2DRendererUpdate;
+import org.epics.graphene.NumberColorMap;
+import org.epics.graphene.NumberColorMaps;
+import static org.epics.pvmanager.formula.ExpressionLanguage.formula;
+import static org.epics.pvmanager.graphene.ExpressionLanguage.*;
+import org.epics.pvmanager.graphene.Graph2DExpression;
+import org.epics.pvmanager.graphene.IntensityGraph2DExpression;
 
 /**
  *
