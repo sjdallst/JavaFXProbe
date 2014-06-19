@@ -111,13 +111,15 @@ public class JavaFXProbe extends javafx.application.Application {
     private ChoiceBox visualChooser = new ChoiceBox();
     private boolean chooserAdded = false;
     private boolean showVisual = false, visualAdded = false;
-    private boolean showText = false, showLineGraph = false, showImage = false, showTable = false;
+    private boolean showText = false, showLineGraph = false, showImage = false, showTable = false
+                    , showIntensityGraph = false;
     private final HBox visualWrapper = new HBox();
     private final Text visualText = new Text();
     private TableView visualTable = new TableView();
     private final ImageView visualImageView = new ImageView();
     private WritableImage visualImage = new WritableImage(100, 100);
     private final LineGraphApp lineGraphApp = new LineGraphApp();
+    private final IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
     
     public void start(){
         this.start(new Stage());
@@ -354,6 +356,26 @@ public class JavaFXProbe extends javafx.application.Application {
                 });
             }
             
+            if(showIntensityGraph){
+                final byte[] pixels = intensityGraphApp.render((VNumberArray)value, Math.max(100, (int)(grid.getWidth() - 50)),
+                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
+
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
+                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
+                        if(!visualAdded) {
+                            visualWrapper.getChildren().add(visualImageView);
+                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
+                            grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
+                            visualAdded = true;
+                        }
+                    }
+                });
+            }
+            
         }
         
         if(value instanceof VTable){
@@ -458,7 +480,7 @@ public class JavaFXProbe extends javafx.application.Application {
                 @Override
                 public void run(){
                     visualChooser.setItems(FXCollections.observableArrayList(
-                        "Hide", "LineGraph"));
+                        "Hide", "Line graph", "Intensity graph"));
                     visualChooser.getSelectionModel().selectedIndexProperty().addListener(
                         (ObservableValue<? extends Number> ov,
                             Number oldValue, Number newValue) -> {
@@ -469,6 +491,10 @@ public class JavaFXProbe extends javafx.application.Application {
                                     case 1:
                                         showVisual = true;
                                         showLineGraph = true;
+                                        break;
+                                    case 2:
+                                        showVisual = true;
+                                        showIntensityGraph = true;
                                         break;
                                 }
                         });
@@ -552,7 +578,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private void hideVisual(){
         showVisual = visualAdded = false;
         
-        showText = showLineGraph = showImage = showTable = false;
+        showText = showLineGraph = showImage = showTable = showIntensityGraph = false;
         
         if(grid.getChildren().contains(visualWrapper)){
             grid.getChildren().remove(visualWrapper);
