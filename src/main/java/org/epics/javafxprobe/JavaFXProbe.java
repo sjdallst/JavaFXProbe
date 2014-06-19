@@ -14,6 +14,7 @@ import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingNode;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -110,9 +111,12 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private ChoiceBox visualChooser = new ChoiceBox();
     private boolean chooserAdded = false;
+    
     private boolean showVisual = false, visualAdded = false;
+    
     private boolean showText = false, showLineGraph = false, showImage = false, showTable = false
                     , showIntensityGraph = false;
+    
     private final HBox visualWrapper = new HBox();
     private final Text visualText = new Text();
     private TableView visualTable = new TableView();
@@ -120,6 +124,8 @@ public class JavaFXProbe extends javafx.application.Application {
     private WritableImage visualImage = new WritableImage(100, 100);
     private final LineGraphApp lineGraphApp = new LineGraphApp();
     private final IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
+    
+    private Button visualConfigButton = new Button("Configure");
     
     public void start(){
         this.start(new Stage());
@@ -490,9 +496,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
-                                        swapVisual();
-                                        showVisual = true;
-                                        showLineGraph = true;
+                                        setupLineGraph();
                                         break;
                                     case 2:
                                         swapVisual();
@@ -502,7 +506,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                 }
                         });
                     visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 3, 2, 1);
+                    grid.add(visualChooser, 0, 3);
                     chooserAdded = true;
                 }
             });
@@ -581,20 +585,8 @@ public class JavaFXProbe extends javafx.application.Application {
     }
     
     private void hideVisual(){
-        showVisual = visualAdded = false;
-        
-        showText = showLineGraph = showImage = showTable = showIntensityGraph = false;
-        
-        if(grid.getChildren().contains(visualWrapper)){
-            grid.getChildren().remove(visualWrapper);
-        }
-        
-        while(visualWrapper.getChildren().size() != 0) {
-            visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
-        }
-        
+        swapVisual();
         grid.getRowConstraints().get(4).setVgrow(Priority.NEVER);
-        
     }
     
     private void swapVisual(){
@@ -604,6 +596,10 @@ public class JavaFXProbe extends javafx.application.Application {
         
         if(grid.getChildren().contains(visualWrapper)){
             grid.getChildren().remove(visualWrapper);
+        }
+        
+        if(grid.getChildren().contains(visualConfigButton)){
+            grid.getChildren().remove(visualConfigButton);
         }
         
         while(visualWrapper.getChildren().size() != 0) {
@@ -740,4 +736,21 @@ public class JavaFXProbe extends javafx.application.Application {
         }
         
     }
+    
+    private void setupLineGraph(){
+        swapVisual();
+        visualConfigButton = new Button("Configure");
+        visualConfigButton.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event){
+                LineGraphDialogue dialogue = new LineGraphDialogue();
+                dialogue.start(lineGraphApp);
+            }
+        });
+        grid.add(visualConfigButton, 1, 3);
+        showVisual = true;
+        showLineGraph = true;
+    }
 }
+
+
