@@ -22,6 +22,7 @@ import org.epics.pvmanager.graphene.Graph2DResult;
 import org.epics.pvmanager.sample.SetupUtil;
 import static org.epics.pvmanager.util.Executors.swingEDT;
 import static org.epics.util.time.TimeDuration.ofHertz;
+import org.epics.vtype.VType;
 import org.epics.vtype.ValueUtil;
 
 /**
@@ -73,6 +74,7 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
     // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
+        
         jLabel1 = new javax.swing.JLabel();
         imagePanel = new org.epics.pvmanager.sample.ImagePanel();
         configureButton = new javax.swing.JButton();
@@ -95,7 +97,6 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
         configureButton.setText("Configure");
         configureButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                configureButtonActionPerformed(evt);
             }
         });
 
@@ -127,14 +128,10 @@ public abstract class BaseGraphApp<T extends Graph2DRendererUpdate<T>> extends j
         );
 
         pack();
-    }// </editor-fold>                                                                        
+    }// </editor-fold>  
+                                                                     
     
-    protected abstract Graph2DExpression<T> createExpression(String dataFormula);
-    protected abstract void openConfigurationDialog();
-    
-    private void configureButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                
-        openConfigurationDialog();
-    }                                               
+    public abstract byte[] render(VType data, int width, int height);                                              
 
 //    private void setLastError(Exception ex) {
 //        if (ex != null) {

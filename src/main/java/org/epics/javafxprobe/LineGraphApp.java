@@ -18,6 +18,7 @@ import org.epics.pvmanager.graphene.LineGraph2DExpression;
 import org.epics.pvmanager.graphene.ScatterGraph2DExpression;
 import org.epics.pvmanager.sample.LineGraphDialog;
 import org.epics.vtype.VNumberArray;
+import org.epics.vtype.VType;
 
 /**
  *
@@ -42,34 +43,20 @@ public class LineGraphApp extends BaseGraphApp<LineGraph2DRendererUpdate> {
             graph.update(graph.newUpdate().interpolation(interpolationScheme));
         }
     }
-
-    @Override
-    protected LineGraph2DExpression createExpression(String dataFormula) {
-        LineGraph2DExpression plot = lineGraphOf(formula(dataFormula),
-                    null,
-                    null,
-                    null);
-        plot.update(plot.newUpdate().interpolation(interpolationScheme));
-        return plot;
-    }
-
-    @Override
-    protected void openConfigurationDialog() {
-//        LineGraphDialog dialog = new LineGraphDialog(new javax.swing.JFrame(), true, this);
-//        dialog.setTitle("Configure...");
-//        dialog.setLocationRelativeTo(this);
-//        dialog.setVisible(true);
-    }
     
     public static void main(String[] args) {
         main(LineGraphApp.class);
+    }
+    
+    public byte[] render(VType data, int width, int height){
+        return this.render((VNumberArray)data, width, height);
     }
     
     public byte[] render(VNumberArray array, int width, int height) {
         
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
         Point2DDataset data = Point2DDatasets.lineData(array.getData());
-        renderer.update(renderer.newUpdate().interpolation(InterpolationScheme.LINEAR)
+        renderer.update(renderer.newUpdate().interpolation(interpolationScheme)
                     .imageHeight(height).imageWidth(width));
         renderer.draw(image.createGraphics(), data);
         byte[] pixels = ((DataBufferByte)image.getRaster().getDataBuffer()).getData();

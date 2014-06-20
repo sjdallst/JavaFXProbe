@@ -499,9 +499,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                         setupLineGraph();
                                         break;
                                     case 2:
-                                        swapVisual();
-                                        showVisual = true;
-                                        showIntensityGraph = true;
+                                        setupIntensityGraph();
                                         break;
                                 }
                         });
@@ -737,7 +735,7 @@ public class JavaFXProbe extends javafx.application.Application {
         
     }
     
-    private void setupLineGraph(){
+    private void setupLineGraph() {
         swapVisual();
         visualConfigButton = new Button("Configure");
         visualConfigButton.setOnAction(new EventHandler<ActionEvent>(){
@@ -750,6 +748,21 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.add(visualConfigButton, 1, 3);
         showVisual = true;
         showLineGraph = true;
+    }
+    
+    private void setupIntensityGraph() {
+        swapVisual();
+        visualConfigButton = new Button("Configure");
+        visualConfigButton.setOnAction(new EventHandler<ActionEvent>(){
+            @Override
+            public void handle(ActionEvent event){
+                IntensityGraphDialogue dialogue = new IntensityGraphDialogue();
+                dialogue.start(intensityGraphApp);
+            }
+        });
+        grid.add(visualConfigButton, 1, 3);
+        showVisual = true;
+        showIntensityGraph = true;
     }
 }
 
