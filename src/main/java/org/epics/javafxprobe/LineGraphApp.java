@@ -44,10 +44,6 @@ public class LineGraphApp extends BaseGraphApp<LineGraph2DRendererUpdate> {
         }
     }
     
-    public static void main(String[] args) {
-        main(LineGraphApp.class);
-    }
-    
     public byte[] render(VType data, int width, int height){
         return this.render((VNumberArray)data, width, height);
     }

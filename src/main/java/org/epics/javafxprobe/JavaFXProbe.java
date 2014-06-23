@@ -6,6 +6,7 @@
 
 package org.epics.javafxprobe;
 
+import java.util.ArrayList;
 import java.util.List;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
@@ -124,6 +125,8 @@ public class JavaFXProbe extends javafx.application.Application {
     private WritableImage visualImage = new WritableImage(100, 100);
     private final LineGraphApp lineGraphApp = new LineGraphApp();
     private final IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
+    private ArrayList<String> visualStringsArray = new ArrayList<String>();
+    private ArrayList<BaseGraphApp> visualGraphArray = new ArrayList<BaseGraphApp>();
     
     private Button visualConfigButton = new Button("Configure");
     
@@ -483,11 +486,29 @@ public class JavaFXProbe extends javafx.application.Application {
         }
         
         if(value instanceof VNumberArray) {
+            visualStringsArray.add("Hide");
+            try {
+                lineGraphApp.render((VNumberArray)value, 100, 100);
+                visualStringsArray.add("Line Graph");
+                visualGraphArray.add(lineGraphApp);
+            }
+            catch(Throwable e){
+                
+            }
+            
+            try {
+                intensityGraphApp.render((VNumberArray)value, 100, 100);
+                visualStringsArray.add("Intensity Graph");
+                visualGraphArray.add(intensityGraphApp);
+            }
+            catch(Throwable e){
+                
+            }
+            
             Platform.runLater(new Runnable() {
                 @Override
                 public void run(){
-                    visualChooser.setItems(FXCollections.observableArrayList(
-                        "Hide", "Line graph", "Intensity graph"));
+                    visualChooser.setItems(FXCollections.observableArrayList(visualStringsArray));
                     visualChooser.getSelectionModel().selectedIndexProperty().addListener(
                         (ObservableValue<? extends Number> ov,
                             Number oldValue, Number newValue) -> {
@@ -496,10 +517,10 @@ public class JavaFXProbe extends javafx.application.Application {
                                         hideVisual();
                                         break;
                                     case 1:
-                                        setupLineGraph();
+                                        setupGraph(visualGraphArray.get(0));
                                         break;
                                     case 2:
-                                        setupIntensityGraph();
+                                        setupGraph(visualGraphArray.get(1));
                                         break;
                                 }
                         });
@@ -632,6 +653,9 @@ public class JavaFXProbe extends javafx.application.Application {
             grid.getChildren().remove(visualChooser);
         }
         
+        visualStringsArray.clear();
+        visualGraphArray.clear();
+        
         visualChooser = new ChoiceBox();
         chooserAdded = false;
     }
@@ -763,6 +787,15 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.add(visualConfigButton, 1, 3);
         showVisual = true;
         showIntensityGraph = true;
+    }
+    
+    private void setupGraph(BaseGraphApp graph){
+        if(graph instanceof LineGraphApp){
+            setupLineGraph();
+        }
+        if (graph instanceof IntensityGraphApp) {
+            setupIntensityGraph();
+        }
     }
 }
 
