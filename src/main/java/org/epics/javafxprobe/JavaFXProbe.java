@@ -39,14 +39,17 @@ import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javax.swing.JRootPane;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
+import org.epics.pvmanager.PVReader;
 import org.epics.pvmanager.PVReaderEvent;
 import org.epics.pvmanager.PVReaderListener;
 import org.epics.pvmanager.PVWriterEvent;
 import org.epics.pvmanager.PVWriterListener;
+import static org.epics.pvmanager.formula.ExpressionLanguage.formula;
 import org.epics.pvmanager.sample.SetupUtil;
 import org.epics.util.array.ListNumber;
 import org.epics.util.time.TimeDuration;
@@ -66,11 +69,13 @@ import org.epics.vtype.ValueUtil;
 public class JavaFXProbe extends javafx.application.Application {
     
     PV<?,?> pv;
+    PVReader<?> formulaPV;
     private final GridPane grid = new GridPane();
     Scene scene = new Scene(grid, 310, 650);
     Stage stage;
     private final Text pvNameLabel = new Text("PV Name: ");
     private final Text pvValueLabel = new Text("Value: ");
+    private final Text pvWriteLabel = new Text("Write Value: ");
     private final Text lastErrorLabel = new Text("Last Error: ");
     private final Text metadataLabel = new Text("Meta Data: ");
     private final Text pvTimeLabel = new Text("Time: ");
@@ -90,6 +95,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private final Text connectedLabel = new Text("Connected: ");
     private final TextField pvNameField = new TextField();
     private final TextField pvValueField = new TextField();
+    private final TextField pvWriteField = new TextField();
     private final TextField lastErrorField = new TextField();
     private final TextField metadataField = new TextField();
     private final TextField pvTimeField = new TextField();
@@ -128,6 +134,9 @@ public class JavaFXProbe extends javafx.application.Application {
     private ArrayList<String> visualStringsArray = new ArrayList<String>();
     private ArrayList<BaseGraphApp> visualGraphArray = new ArrayList<BaseGraphApp>();
     
+    private boolean write = false;
+    private String writtenValue = "";
+    
     private Button visualConfigButton = new Button("Configure");
     
     public void start(){
@@ -143,6 +152,20 @@ public class JavaFXProbe extends javafx.application.Application {
         initComponents();
         
         scene.setFill(Paint.valueOf("lightGray"));
+        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>(){
+            @Override
+            public void handle(WindowEvent event){
+                if(pv != null){
+                    pv.close();
+                }
+                
+                if(formulaPV != null){
+                    formulaPV.close();
+                }
+                
+            }
+            
+        });
         primaryStage.setTitle("Probe");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -287,11 +310,15 @@ public class JavaFXProbe extends javafx.application.Application {
 
     private void setWriteConnected(Boolean connected) {
         if (connected != null) {
+            final boolean connected1 = connected;
             final String connectedString = connected.toString();
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
                     writeConnectedField.setText(connectedString);
+                    if(connected){
+                        grid.addRow(3, pvWriteLabel, pvWriteField);
+                    }
                 }
             });
         } else {
@@ -330,11 +357,10 @@ public class JavaFXProbe extends javafx.application.Application {
                     if(!visualAdded) {
                         if(showText) {
                             visualWrapper.getChildren().add(visualText);
-                            grid.add(visualWrapper, 0, 4, 2, 2);
+                            grid.add(visualWrapper, 0, 5, 2, 2);
                             visualAdded = true;
                         }
-                        grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
-                        grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
+                        grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
                     }
                     if(showText) {
                         visualText.setText(ValueUtil.numericValueOf(value1).toString());
@@ -346,43 +372,11 @@ public class JavaFXProbe extends javafx.application.Application {
         if(value instanceof VNumberArray){
             
             if(showLineGraph){
-                final byte[] pixels = lineGraphApp.render((VNumberArray)value, Math.max(100, (int)(grid.getWidth() - 50)),
-                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
-
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
-                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
-                        if(!visualAdded) {
-                            visualWrapper.getChildren().add(visualImageView);
-                            grid.add(visualWrapper, 0, 4, 2, 2);
-                            grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
-                            grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
-                            visualAdded = true;
-                        }
-                    }
-                });
+                showGraph((VNumberArray) value, lineGraphApp);
             }
             
             if(showIntensityGraph){
-                final byte[] pixels = intensityGraphApp.render((VNumberArray)value, Math.max(100, (int)(grid.getWidth() - 50)),
-                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
-
-                Platform.runLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
-                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 15*pvNameField.getHeight()))));
-                        if(!visualAdded) {
-                            visualWrapper.getChildren().add(visualImageView);
-                            grid.add(visualWrapper, 0, 4, 2, 2);
-                            grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
-                            grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
-                            visualAdded = true;
-                        }
-                    }
-                });
+                showGraph((VNumberArray) value, intensityGraphApp);
             }
             
         }
@@ -429,10 +423,10 @@ public class JavaFXProbe extends javafx.application.Application {
                     
                     if(!visualAdded) {
                         visualWrapper.getChildren().add(visualTable);
-                        grid.add(visualWrapper, 0, 4, 2, 2);
+                        grid.add(visualWrapper, 0, 5, 2, 2);
                         visualAdded = true;  
-                        grid.getRowConstraints().get(4).setMaxHeight(Double.MAX_VALUE);
-                        grid.getRowConstraints().get(4).setVgrow(Priority.ALWAYS);
+                        grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
+                        grid.getRowConstraints().get(5).setVgrow(Priority.ALWAYS);
                     }
                 });    
             }
@@ -479,7 +473,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                 }
                         });
                     visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 3, 2, 1);
+                    grid.add(visualChooser, 0, 4, 2, 1);
                     chooserAdded = true;
                 }
             });
@@ -525,7 +519,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                 }
                         });
                     visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 3);
+                    grid.add(visualChooser, 0, 4);
                     chooserAdded = true;
                 }
             });
@@ -552,7 +546,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                 }
                         });
                     visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 3, 2, 1);
+                    grid.add(visualChooser, 0, 4, 2, 1);
                     chooserAdded = true;
                 }
             });
@@ -579,7 +573,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                 }
                         });
                     visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 3, 2, 1);
+                    grid.add(visualChooser, 0, 4, 2, 1);
                     chooserAdded = true;
                 }
             });
@@ -605,10 +599,10 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private void hideVisual(){
         swapVisual();
-        grid.getRowConstraints().get(4).setVgrow(Priority.NEVER);
+        grid.getRowConstraints().get(5).setVgrow(Priority.NEVER);
     }
     
-    private void swapVisual(){
+    private void swapVisual() {
         showVisual = visualAdded = false;
         
         showText = showLineGraph = showImage = showTable = showIntensityGraph = false;
@@ -621,6 +615,10 @@ public class JavaFXProbe extends javafx.application.Application {
             grid.getChildren().remove(visualConfigButton);
         }
         
+        if(grid.getChildren().contains(pvWriteField) && grid.getChildren().contains(pvWriteLabel)){
+            grid.getChildren().removeAll(pvWriteField, pvWriteLabel);
+        }
+        
         while(visualWrapper.getChildren().size() != 0) {
             visualWrapper.getChildren().remove(visualWrapper.getChildren().size() - 1);
         }
@@ -628,6 +626,7 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private void clearFields(){
         pvValueField.clear();
+        pvWriteField.clear();
         lastErrorField.clear();
         metadataField.clear();
         pvTimeField.clear();
@@ -666,8 +665,16 @@ public class JavaFXProbe extends javafx.application.Application {
             public void handle(ActionEvent event) {
                 
                 //case when user switches channels while one is still open.
-                if (pv != null) {
-                    pv.close();
+                if (pv != null || formulaPV != null) {
+                    
+                    if(pv != null){
+                        pv.close();
+                    }
+                    
+                    if(formulaPV != null) {
+                        formulaPV.close();
+                    }
+                    
                     hideVisual();
                     resetChoiceBox();
                     clearFields();
@@ -675,35 +682,68 @@ public class JavaFXProbe extends javafx.application.Application {
 
                 //attempt to set up a channel from user input
                 try {
-                    pv = PVManager.readAndWrite(channel(pvNameField.getText()))
+                    if(pvNameField.getText().startsWith("=")){
+                        formulaPV = PVManager.read(formula(pvNameField.getText()))
                             .timeout(TimeDuration.ofSeconds(5))
                             .readListener(new PVReaderListener<Object>() {
-                                    @Override
-                                    public void pvChanged(PVReaderEvent<Object> event) {
-                                        setLastError(pv.lastException());
-                                        Object value = pv.getValue();
-                                        setTextValue(format.format(value));
-                                        setType(ValueUtil.typeOf(value));
-                                        setTime(ValueUtil.timeOf(value));
-                                        setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                        setMetadata(ValueUtil.displayOf(value));
-                                        setAlarm(ValueUtil.alarmOf(value));
-                                        setConnected(pv.isConnected());
-                                        if(value != null && !chooserAdded){
-                                            setChoiceBox(value);
+                                @Override
+                                public void pvChanged(PVReaderEvent<Object> event) {
+                                    setLastError(pv.lastException());
+                                    Object value = pv.getValue();
+                                    setTextValue(format.format(value));
+                                    setType(ValueUtil.typeOf(value));
+                                    setTime(ValueUtil.timeOf(value));
+                                    setIndicator(ValueUtil.normalizedNumericValueOf(value));
+                                    setMetadata(ValueUtil.displayOf(value));
+                                    setAlarm(ValueUtil.alarmOf(value));
+                                    setConnected(pv.isConnected());
+                                    if(value != null && !chooserAdded){
+                                        setChoiceBox(value);
+                                    }
+                                    if(showVisual && (value != null)){
+                                        setVisual(value);
+                                    }
+                                }
+                            })
+                            .maxRate(ofHertz(10));
+                    }
+                    else {
+                        pv = PVManager.readAndWrite(channel(pvNameField.getText()))
+                                .timeout(TimeDuration.ofSeconds(5))
+                                .readListener(new PVReaderListener<Object>() {
+                                        @Override
+                                        public void pvChanged(PVReaderEvent<Object> event) {
+                                            setLastError(pv.lastException());
+                                            Object value = pv.getValue();
+                                            setTextValue(format.format(value));
+                                            setType(ValueUtil.typeOf(value));
+                                            setTime(ValueUtil.timeOf(value));
+                                            setIndicator(ValueUtil.normalizedNumericValueOf(value));
+                                            setMetadata(ValueUtil.displayOf(value));
+                                            setAlarm(ValueUtil.alarmOf(value));
+                                            setConnected(pv.isConnected());
+                                            if(value != null && !chooserAdded){
+                                                setChoiceBox(value);
+                                            }
+                                            if(showVisual && (value != null)){
+                                                setVisual(value);
+                                            }
                                         }
-                                        if(showVisual && (value != null)){
-                                            setVisual(value);
+                                    })
+                                .writeListener(new PVWriterListener<Object>() {
+                                    @Override
+                                    public void pvChanged(PVWriterEvent<Object> event) {
+                                        setWriteConnected(pv.isWriteConnected());
+                                        if(pv.isWriteConnected() && write){
+                                            event.getPvWriter().write(pvWriteField.getText());
+                                            write = false;
+                                            pvWriteField.setText("Written");
+                                            pvWriteField.setEditable(true);
                                         }
                                     }
                                 })
-                            .writeListener(new PVWriterListener<Object>() {
-                                @Override
-                                public void pvChanged(PVWriterEvent<Object> event) {
-                                    setWriteConnected(pv.isWriteConnected());
-                                }
-                            })
-                            .asynchWriteAndMaxReadRate(ofHertz(10));
+                                .asynchWriteAndMaxReadRate(ofHertz(10));
+                    }
                 } 
                 catch (RuntimeException ex) { //if the channel does not work, then throw an error.
                     setLastError(ex);
@@ -711,13 +751,13 @@ public class JavaFXProbe extends javafx.application.Application {
             }
         });
         
-        pvValueField.setOnAction(new EventHandler<ActionEvent>() {
+        pvWriteField.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                pvValueField.setEditable(false);
-                pvValueField.setFocusTraversable(false);
-                pvValueField.setBlendMode(BlendMode.DARKEN);
-                pvValueField.clear();
+                writtenValue = pvWriteField.getText();
+                write = true;
+                pvWriteField.setEditable(false);
+                pvWriteField.setText("Writing..");
             }
         });
       
@@ -735,25 +775,25 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.addRow(0, pvNameLabel, pvNameField);
         grid.add(seperator1, 0, 1, 2, 1);
         grid.addRow(2, pvValueLabel, pvValueField);
-        grid.addRow(6, pvTimeLabel, pvTimeField);
-        grid.add(seperator2, 0, 7, 2, 1);
-        grid.addRow(8, pvTypeLabel, pvTypeField);
-        grid.addRow(9, displayLimitsLabel, displayLimitsField);
-        grid.addRow(10, alarmLimitsLabel, alarmLimitsField);
-        grid.addRow(11, warningLimitsLabel, warningLimitsField);
-        grid.addRow(12, controlLimitsLabel, controlLimitsField);
-        grid.addRow(13, unitLabel, unitField);
-        grid.add(seperator3, 0, 14, 2, 1);
-        grid.addRow(15, lastErrorLabel, lastErrorField);
-        grid.addRow(16, writeConnectedLabel, writeConnectedField);
-        grid.addRow(17, connectedLabel, connectedField);
+        grid.addRow(7, pvTimeLabel, pvTimeField);
+        grid.add(seperator2, 0, 8, 2, 1);
+        grid.addRow(9, pvTypeLabel, pvTypeField);
+        grid.addRow(10, displayLimitsLabel, displayLimitsField);
+        grid.addRow(11, alarmLimitsLabel, alarmLimitsField);
+        grid.addRow(12, warningLimitsLabel, warningLimitsField);
+        grid.addRow(13, controlLimitsLabel, controlLimitsField);
+        grid.addRow(14, unitLabel, unitField);
+        grid.add(seperator3, 0, 15, 2, 1);
+        grid.addRow(16, lastErrorLabel, lastErrorField);
+        grid.addRow(17, writeConnectedLabel, writeConnectedField);
+        grid.addRow(18, connectedLabel, connectedField);
         
         ColumnConstraints column1 = new ColumnConstraints(100,100,Double.MAX_VALUE);
         ColumnConstraints column2 = new ColumnConstraints(100, 100, Double.MAX_VALUE);
         column2.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(column1, column2);
         
-        for(int i = 0; i < 18; i++){
+        for(int i = 0; i < 19; i++){
             grid.getRowConstraints().add(new RowConstraints());
         }
         
@@ -769,7 +809,7 @@ public class JavaFXProbe extends javafx.application.Application {
                 dialogue.start(lineGraphApp);
             }
         });
-        grid.add(visualConfigButton, 1, 3);
+        grid.add(visualConfigButton, 1, 4);
         showVisual = true;
         showLineGraph = true;
     }
@@ -784,7 +824,7 @@ public class JavaFXProbe extends javafx.application.Application {
                 dialogue.start(intensityGraphApp);
             }
         });
-        grid.add(visualConfigButton, 1, 3);
+        grid.add(visualConfigButton, 1, 4);
         showVisual = true;
         showIntensityGraph = true;
     }
@@ -796,6 +836,26 @@ public class JavaFXProbe extends javafx.application.Application {
         if (graph instanceof IntensityGraphApp) {
             setupIntensityGraph();
         }
+    }
+    
+    private void showGraph(VNumberArray value, BaseGraphApp graph){
+        final byte[] pixels = graph.render(value, Math.max(100, (int)(grid.getWidth() - 50)),
+                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 16*pvNameField.getHeight()))));
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
+                                               Math.max(100, (int)(grid.getHeight() - (16*10 + 16*pvNameField.getHeight()))));
+                if(!visualAdded) {
+                    visualWrapper.getChildren().add(visualImageView);
+                    grid.add(visualWrapper, 0, 5, 2, 2);
+                    grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
+                    grid.getRowConstraints().get(5).setVgrow(Priority.ALWAYS);
+                    visualAdded = true;
+                }
+            }
+        });
     }
 }
 
