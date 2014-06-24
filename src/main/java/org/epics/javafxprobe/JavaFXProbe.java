@@ -6,6 +6,8 @@
 
 package org.epics.javafxprobe;
 
+import eu.hansolo.enzo.common.Section;
+import eu.hansolo.enzo.gauge.Gauge;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.application.Platform;
@@ -133,6 +135,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private final IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
     private ArrayList<String> visualStringsArray = new ArrayList<String>();
     private ArrayList<BaseGraphApp> visualGraphArray = new ArrayList<BaseGraphApp>();
+    private Gauge visualGauge = new Gauge();
     
     private boolean write = false;
     private String writtenValue = "";
@@ -356,14 +359,25 @@ public class JavaFXProbe extends javafx.application.Application {
                 public void run() {
                     if(!visualAdded) {
                         if(showText) {
-                            visualWrapper.getChildren().add(visualText);
+                            visualGauge.setMinValue(ValueUtil.displayOf(value1).getLowerDisplayLimit());
+                            visualGauge.setMaxValue(ValueUtil.displayOf(value1).getUpperDisplayLimit());
+                            visualGauge.setAnimated(false);
+                            visualGauge.setAreas(new Section(ValueUtil.displayOf(value1).getLowerCtrlLimit(),
+                                                    ValueUtil.displayOf(value1).getLowerAlarmLimit()), 
+                                                    new Section(ValueUtil.displayOf(value1).getLowerAlarmLimit(),
+                                                    ValueUtil.displayOf(value1).getUpperAlarmLimit()),
+                                                    new Section(ValueUtil.displayOf(value1).getUpperAlarmLimit(),
+                                                    ValueUtil.displayOf(value1).getUpperCtrlLimit()));
+                            visualGauge.setValue((ValueUtil.displayOf(value1).getLowerDisplayLimit() + ValueUtil.displayOf(value1).getUpperDisplayLimit())/2);
+                            visualGauge.setAutoScale(true);
+                            visualWrapper.getChildren().add(visualGauge);
                             grid.add(visualWrapper, 0, 5, 2, 2);
                             visualAdded = true;
                         }
                         grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
                     }
                     if(showText) {
-                        visualText.setText(ValueUtil.numericValueOf(value1).toString());
+                        visualGauge.setValue(Double.parseDouble(format.format(value1)));
                     }
                 }
             });
@@ -457,7 +471,7 @@ public class JavaFXProbe extends javafx.application.Application {
                 @Override
                 public void run(){
                     visualChooser.setItems(FXCollections.observableArrayList(
-                        "Hide", "Value"));
+                        "Hide", "Meter"));
                     visualChooser.getSelectionModel().selectedIndexProperty().addListener(
                         (ObservableValue<? extends Number> ov,
                             Number oldValue, Number newValue) -> {
