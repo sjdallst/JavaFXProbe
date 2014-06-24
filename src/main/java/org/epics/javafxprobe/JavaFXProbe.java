@@ -368,6 +368,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                                     ValueUtil.displayOf(value1).getUpperAlarmLimit()),
                                                     new Section(ValueUtil.displayOf(value1).getUpperAlarmLimit(),
                                                     ValueUtil.displayOf(value1).getUpperCtrlLimit()));
+                            visualGauge.setPlainValue(false);
                             visualGauge.setValue((ValueUtil.displayOf(value1).getLowerDisplayLimit() + ValueUtil.displayOf(value1).getUpperDisplayLimit())/2);
                             visualGauge.setAutoScale(true);
                             visualWrapper.getChildren().add(visualGauge);
