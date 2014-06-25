@@ -78,7 +78,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private final GridPane generalInfoGrid = new GridPane();
     private final TitledPane metaDataPane = new TitledPane();
     private final TitledPane generalInfoPane = new TitledPane();
-    Scene scene = new Scene(grid, 310, 650);
+    Scene scene = new Scene(grid, 350, 650);
     Stage stage;
     private final Text pvNameLabel = new Text("PV Name: ");
     private final Text pvValueLabel = new Text("Value: ");
@@ -787,7 +787,7 @@ public class JavaFXProbe extends javafx.application.Application {
                                     public void pvChanged(PVWriterEvent<Object> event) {
                                         setWriteConnected(pv.isWriteConnected());
                                         if(pv.isWriteConnected() && write){
-                                            event.getPvWriter().write(pvWriteField.getText());
+                                            event.getPvWriter().write(writtenValue);
                                             write = false;
                                             pvWriteField.setText("Written");
                                             pvWriteField.setEditable(true);
@@ -879,8 +879,10 @@ public class JavaFXProbe extends javafx.application.Application {
         
         ColumnConstraints column1 = new ColumnConstraints(100,100,Double.MAX_VALUE);
         ColumnConstraints column2 = new ColumnConstraints(100, 100, Double.MAX_VALUE);
-        column2.setHgrow(Priority.ALWAYS);
+        column2.setHgrow(Priority.ALWAYS); //column2 contains textfields, this causes the textfields to grow with the window.
         grid.getColumnConstraints().addAll(column1, column2);
+        metaDataGrid.getColumnConstraints().addAll(column1, column2);
+        generalInfoGrid.getColumnConstraints().addAll(column1, column2);
         
         for(int i = 0; i < 10; i++){
             grid.getRowConstraints().add(new RowConstraints());
@@ -928,8 +930,12 @@ public class JavaFXProbe extends javafx.application.Application {
     }
     
     private void showGraph(VNumberArray value, BaseGraphApp graph) {
+        
+        /*Graph height is calculated by subtracting the total height of the all of the currently visible
+        *text fields from the height of the grid (which is equal to the distance between the top and bottom
+        *of the window border.*/
         int graphHeight = 0;
-        if(metaDataPane.isExpanded() && generalInfoPane.isExpanded()){
+        if(metaDataPane.isExpanded() && generalInfoPane.isExpanded()){ 
             graphHeight = (int)(grid.getHeight() - (17*10 + 16*pvNameField.getHeight() + 50));
         } 
         else if(metaDataPane.isExpanded()) {
@@ -941,6 +947,7 @@ public class JavaFXProbe extends javafx.application.Application {
         else {
             graphHeight = (int)(grid.getHeight() - (7*10 + 6*pvNameField.getHeight() + 50));
         }
+        
         final byte[] pixels = graph.render(value, Math.max(60, (int)(grid.getWidth() - 50)),
                                                           Math.max(60, graphHeight));
         final int graphHeightFinal = graphHeight;
