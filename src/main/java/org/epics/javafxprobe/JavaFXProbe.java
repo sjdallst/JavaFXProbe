@@ -29,6 +29,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.effect.BlendMode;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelWriter;
@@ -73,6 +74,10 @@ public class JavaFXProbe extends javafx.application.Application {
     PV<?,?> pv;
     PVReader<?> formulaPV;
     private final GridPane grid = new GridPane();
+    private final GridPane metaDataGrid = new GridPane();
+    private final GridPane generalInfoGrid = new GridPane();
+    private final TitledPane metaDataPane = new TitledPane();
+    private final TitledPane generalInfoPane = new TitledPane();
     Scene scene = new Scene(grid, 310, 650);
     Stage stage;
     private final Text pvNameLabel = new Text("PV Name: ");
@@ -123,16 +128,16 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private boolean showVisual = false, visualAdded = false;
     
-    private boolean showText = false, showLineGraph = false, showImage = false, showTable = false
+    private boolean showMeter = false, showLineGraph = false, showImage = false, showTable = false
                     , showIntensityGraph = false;
     
     private final HBox visualWrapper = new HBox();
-    private final Text visualText = new Text();
+    private final Text errorText = new Text();
     private TableView visualTable = new TableView();
     private final ImageView visualImageView = new ImageView();
     private WritableImage visualImage = new WritableImage(100, 100);
-    private final LineGraphApp lineGraphApp = new LineGraphApp();
-    private final IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
+    private LineGraphApp lineGraphApp = new LineGraphApp();
+    private IntensityGraphApp intensityGraphApp = new IntensityGraphApp();
     private ArrayList<String> visualStringsArray = new ArrayList<String>();
     private ArrayList<BaseGraphApp> visualGraphArray = new ArrayList<BaseGraphApp>();
     private Gauge visualGauge = new Gauge();
@@ -358,13 +363,17 @@ public class JavaFXProbe extends javafx.application.Application {
                 @Override
                 public void run() {
                     if(!visualAdded) {
-                        if(showText) {
+                        if(showMeter) {
                             visualGauge.setMinValue(ValueUtil.displayOf(value1).getLowerDisplayLimit());
                             visualGauge.setMaxValue(ValueUtil.displayOf(value1).getUpperDisplayLimit());
                             visualGauge.setAnimated(false);
                             visualGauge.setAreas(new Section(ValueUtil.displayOf(value1).getLowerCtrlLimit(),
-                                                    ValueUtil.displayOf(value1).getLowerAlarmLimit()), 
+                                                    ValueUtil.displayOf(value1).getLowerAlarmLimit()),
                                                     new Section(ValueUtil.displayOf(value1).getLowerAlarmLimit(),
+                                                    ValueUtil.displayOf(value1).getLowerWarningLimit()),
+                                                    new Section(ValueUtil.displayOf(value1).getLowerWarningLimit(),
+                                                    ValueUtil.displayOf(value1).getUpperWarningLimit()),
+                                                    new Section(ValueUtil.displayOf(value1).getUpperWarningLimit(),
                                                     ValueUtil.displayOf(value1).getUpperAlarmLimit()),
                                                     new Section(ValueUtil.displayOf(value1).getUpperAlarmLimit(),
                                                     ValueUtil.displayOf(value1).getUpperCtrlLimit()));
@@ -377,7 +386,7 @@ public class JavaFXProbe extends javafx.application.Application {
                         }
                         grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
                     }
-                    if(showText) {
+                    if(showMeter) {
                         visualGauge.setValue(Double.parseDouble(format.format(value1)));
                     }
                 }
@@ -468,30 +477,50 @@ public class JavaFXProbe extends javafx.application.Application {
     private void setChoiceBox(Object value){
         
         if(value instanceof VNumber) {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run(){
-                    visualChooser.setItems(FXCollections.observableArrayList(
-                        "Hide", "Meter"));
-                    visualChooser.getSelectionModel().selectedIndexProperty().addListener(
-                        (ObservableValue<? extends Number> ov,
-                            Number oldValue, Number newValue) -> {
-                                switch(newValue.intValue()){
-                                    case 0:
-                                        hideVisual();
-                                        break;
-                                    case 1:
-                                        swapVisual();
-                                        showVisual = true;
-                                        showText = true;
-                                        break;
-                                }
-                        });
-                    visualChooser.getSelectionModel().selectFirst();
-                    grid.add(visualChooser, 0, 4, 2, 1);
-                    chooserAdded = true;
-                }
-            });
+            //check to make sure that none of the limits are NaN because it causes issues when setting up the meter.
+            if(!(ValueUtil.displayOf(value).getLowerCtrlLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getLowerAlarmLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getLowerWarningLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getUpperWarningLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getUpperAlarmLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getUpperCtrlLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getLowerDisplayLimit().compareTo(Double.NaN) == 0 ||
+                    ValueUtil.displayOf(value).getUpperDisplayLimit().compareTo(Double.NaN) == 0)) {
+                Platform.runLater(new Runnable() {
+                    @Override
+                    public void run(){
+                        visualChooser.setItems(FXCollections.observableArrayList(
+                            "Hide", "Meter"));
+                        visualChooser.getSelectionModel().selectedIndexProperty().addListener(
+                            (ObservableValue<? extends Number> ov,
+                                Number oldValue, Number newValue) -> {
+                                    switch(newValue.intValue()){
+                                        case 0:
+                                            hideVisual();
+                                            break;
+                                        case 1:
+                                            swapVisual();
+                                            showVisual = true;
+                                            showMeter = true;
+                                            break;
+                                    }
+                            });
+                        visualChooser.getSelectionModel().selectFirst();
+                        grid.add(visualChooser, 0, 4, 2, 1);
+                        chooserAdded = true;
+                    }
+                });
+            }
+            else {
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run(){
+                        errorText.setText("Meter can not be set when limits are NaN");
+                        grid.add(errorText, 0, 4, 2, 1);
+                        chooserAdded = true;
+                    }
+                });
+            }
         }
         
         if(value instanceof VNumberArray) {
@@ -620,10 +649,18 @@ public class JavaFXProbe extends javafx.application.Application {
     private void swapVisual() {
         showVisual = visualAdded = false;
         
-        showText = showLineGraph = showImage = showTable = showIntensityGraph = false;
+        showMeter = showLineGraph = showImage = showTable = showIntensityGraph = false;
+        
+        lineGraphApp = new LineGraphApp();
+        intensityGraphApp = new IntensityGraphApp();
+        
         
         if(grid.getChildren().contains(visualWrapper)){
             grid.getChildren().remove(visualWrapper);
+        }
+        
+        if(grid.getChildren().contains(errorText)) {
+            grid.getChildren().remove(errorText);
         }
         
         if(grid.getChildren().contains(visualConfigButton)){
@@ -703,15 +740,15 @@ public class JavaFXProbe extends javafx.application.Application {
                             .readListener(new PVReaderListener<Object>() {
                                 @Override
                                 public void pvChanged(PVReaderEvent<Object> event) {
-                                    setLastError(pv.lastException());
-                                    Object value = pv.getValue();
+                                    setLastError(formulaPV.lastException());
+                                    Object value = formulaPV.getValue();
                                     setTextValue(format.format(value));
                                     setType(ValueUtil.typeOf(value));
                                     setTime(ValueUtil.timeOf(value));
                                     setIndicator(ValueUtil.normalizedNumericValueOf(value));
                                     setMetadata(ValueUtil.displayOf(value));
                                     setAlarm(ValueUtil.alarmOf(value));
-                                    setConnected(pv.isConnected());
+                                    setConnected(formulaPV.isConnected());
                                     if(value != null && !chooserAdded){
                                         setChoiceBox(value);
                                     }
@@ -772,18 +809,46 @@ public class JavaFXProbe extends javafx.application.Application {
                 writtenValue = pvWriteField.getText();
                 write = true;
                 pvWriteField.setEditable(false);
-                pvWriteField.setText("Writing..");
+                pvWriteField.setText("Writing...");
             }
         });
+        
+        pvValueField.setEditable(false);
+        pvWriteField.setEditable(false);
+        lastErrorField.setEditable(false);
+        metadataField.setEditable(false);
+        pvTimeField.setEditable(false);
+        pvTypeField.setEditable(false);
+        displayLimitsField.setEditable(false);
+        alarmLimitsField.setEditable(false);
+        warningLimitsField.setEditable(false);
+        controlLimitsField.setEditable(false);
+        unitField.setEditable(false);
+        expressionTypeField.setEditable(false);
+        expressionNameField.setEditable(false);
+        channelHandlerField.setEditable(false);
+        usageCountField.setEditable(false);
+        connectedRWField.setEditable(false);
+        channelPropertiesField.setEditable(false);
+        writeConnectedField.setEditable(false);
+        connectedField.setEditable(false);
       
         grid.setAlignment(Pos.TOP_LEFT);
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(25, 25, 25, 25));
         
+        metaDataGrid.setAlignment(Pos.TOP_LEFT);
+        metaDataGrid.setHgap(10);
+        metaDataGrid.setVgap(10);
+        metaDataGrid.setPadding(new Insets(10, 25, 10, 25));
+        
+        generalInfoGrid.setAlignment(Pos.TOP_LEFT);
+        generalInfoGrid.setHgap(10);
+        generalInfoGrid.setVgap(10);
+        generalInfoGrid.setPadding(new Insets(10, 25, 10, 25));
+        
         Separator seperator1 = new Separator();
-        Separator seperator2 = new Separator();
-        Separator seperator3 = new Separator(); 
         
         visualWrapper.setAlignment(Pos.CENTER);
         
@@ -791,24 +856,33 @@ public class JavaFXProbe extends javafx.application.Application {
         grid.add(seperator1, 0, 1, 2, 1);
         grid.addRow(2, pvValueLabel, pvValueField);
         grid.addRow(7, pvTimeLabel, pvTimeField);
-        grid.add(seperator2, 0, 8, 2, 1);
-        grid.addRow(9, pvTypeLabel, pvTypeField);
-        grid.addRow(10, displayLimitsLabel, displayLimitsField);
-        grid.addRow(11, alarmLimitsLabel, alarmLimitsField);
-        grid.addRow(12, warningLimitsLabel, warningLimitsField);
-        grid.addRow(13, controlLimitsLabel, controlLimitsField);
-        grid.addRow(14, unitLabel, unitField);
-        grid.add(seperator3, 0, 15, 2, 1);
-        grid.addRow(16, lastErrorLabel, lastErrorField);
-        grid.addRow(17, writeConnectedLabel, writeConnectedField);
-        grid.addRow(18, connectedLabel, connectedField);
+        grid.add(metaDataPane, 0, 8, 2, 1);
+        grid.add(generalInfoPane, 0, 9, 2, 1);
+
+        
+        metaDataGrid.addRow(0, pvTypeLabel, pvTypeField);
+        metaDataGrid.addRow(1, displayLimitsLabel, displayLimitsField);
+        metaDataGrid.addRow(2, alarmLimitsLabel, alarmLimitsField);
+        metaDataGrid.addRow(3, warningLimitsLabel, warningLimitsField);
+        metaDataGrid.addRow(4, controlLimitsLabel, controlLimitsField);
+        metaDataGrid.addRow(5, unitLabel, unitField);
+        
+        generalInfoGrid.addRow(0, lastErrorLabel, lastErrorField);
+        generalInfoGrid.addRow(1, writeConnectedLabel, writeConnectedField);
+        generalInfoGrid.addRow(2, connectedLabel, connectedField);
+        
+        metaDataPane.setText("Metadata");
+        metaDataPane.setContent(metaDataGrid);
+        
+        generalInfoPane.setText("General Information");
+        generalInfoPane.setContent(generalInfoGrid);
         
         ColumnConstraints column1 = new ColumnConstraints(100,100,Double.MAX_VALUE);
         ColumnConstraints column2 = new ColumnConstraints(100, 100, Double.MAX_VALUE);
         column2.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(column1, column2);
         
-        for(int i = 0; i < 19; i++){
+        for(int i = 0; i < 10; i++){
             grid.getRowConstraints().add(new RowConstraints());
         }
         
@@ -853,15 +927,29 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
     
-    private void showGraph(VNumberArray value, BaseGraphApp graph){
-        final byte[] pixels = graph.render(value, Math.max(100, (int)(grid.getWidth() - 50)),
-                                                          Math.max(100, (int)(grid.getHeight() - (16*10 + 16*pvNameField.getHeight()))));
+    private void showGraph(VNumberArray value, BaseGraphApp graph) {
+        int graphHeight = 0;
+        if(metaDataPane.isExpanded() && generalInfoPane.isExpanded()){
+            graphHeight = (int)(grid.getHeight() - (17*10 + 16*pvNameField.getHeight() + 50));
+        } 
+        else if(metaDataPane.isExpanded()) {
+            graphHeight = (int)(grid.getHeight() - (14*10 + 13*pvNameField.getHeight() + 50));
+        } 
+        else if(generalInfoPane.isExpanded()) {
+            graphHeight = (int)(grid.getHeight() - (11*10 + 10*pvNameField.getHeight() + 50));
+        } 
+        else {
+            graphHeight = (int)(grid.getHeight() - (7*10 + 6*pvNameField.getHeight() + 50));
+        }
+        final byte[] pixels = graph.render(value, Math.max(60, (int)(grid.getWidth() - 50)),
+                                                          Math.max(60, graphHeight));
+        final int graphHeightFinal = graphHeight;
 
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                drawByteArray(pixels, Math.max(100, (int)(grid.getWidth() - 50)),
-                                               Math.max(100, (int)(grid.getHeight() - (16*10 + 16*pvNameField.getHeight()))));
+                drawByteArray(pixels, Math.max(60, (int)(grid.getWidth() - 50)),
+                                               Math.max(60, graphHeightFinal));
                 if(!visualAdded) {
                     visualWrapper.getChildren().add(visualImageView);
                     grid.add(visualWrapper, 0, 5, 2, 2);
