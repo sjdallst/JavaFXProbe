@@ -71,7 +71,7 @@ import org.epics.vtype.ValueUtil;
  */
 public class JavaFXProbe extends javafx.application.Application {
     
-    PV<?,?> pv;
+    PV<Object , Object> pv;
     PVReader<?> formulaPV;
     private final GridPane grid = new GridPane();
     private final GridPane metaDataGrid = new GridPane();
@@ -130,6 +130,8 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private boolean showMeter = false, showLineGraph = false, showImage = false, showTable = false
                     , showIntensityGraph = false;
+    
+    private boolean pvWriteFieldAdded = false;
     
     private final HBox visualWrapper = new HBox();
     private final Text errorText = new Text();
@@ -324,9 +326,11 @@ public class JavaFXProbe extends javafx.application.Application {
                 @Override
                 public void run() {
                     writeConnectedField.setText(connectedString);
-                    if(connected){
+                    if(connected && !pvWriteFieldAdded){
                         grid.addRow(3, pvWriteLabel, pvWriteField);
+                        pvWriteFieldAdded = true;
                     }
+                    pvWriteField.setEditable(connected);
                 }
             });
         } else {
@@ -696,6 +700,12 @@ public class JavaFXProbe extends javafx.application.Application {
         channelPropertiesField.clear();
         writeConnectedField.clear();
         connectedField.clear();
+        
+        if(grid.getChildren().contains(pvWriteField)){
+            grid.getChildren().remove(pvWriteField);
+        }
+        pvWriteFieldAdded = false;
+        pvWriteField.setEditable(true);
     }
     
     private void resetChoiceBox(){
@@ -786,12 +796,6 @@ public class JavaFXProbe extends javafx.application.Application {
                                     @Override
                                     public void pvChanged(PVWriterEvent<Object> event) {
                                         setWriteConnected(pv.isWriteConnected());
-                                        if(pv.isWriteConnected() && write){
-                                            event.getPvWriter().write(writtenValue);
-                                            write = false;
-                                            pvWriteField.setText("Written");
-                                            pvWriteField.setEditable(true);
-                                        }
                                     }
                                 })
                                 .asynchWriteAndMaxReadRate(ofHertz(10));
@@ -806,15 +810,13 @@ public class JavaFXProbe extends javafx.application.Application {
         pvWriteField.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                writtenValue = pvWriteField.getText();
-                write = true;
-                pvWriteField.setEditable(false);
-                pvWriteField.setText("Writing...");
+                if(pv.isWriteConnected()){
+                    pv.write(pvWriteField.getText());
+                }
             }
         });
         
         pvValueField.setEditable(false);
-        pvWriteField.setEditable(false);
         lastErrorField.setEditable(false);
         metadataField.setEditable(false);
         pvTimeField.setEditable(false);
