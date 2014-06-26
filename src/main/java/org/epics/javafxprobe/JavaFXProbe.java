@@ -133,6 +133,8 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private boolean pvWriteFieldAdded = false;
     
+    private boolean channelChanged = false;
+    
     private final HBox visualWrapper = new HBox();
     private final Text errorText = new Text();
     private TableView visualTable = new TableView();
@@ -681,25 +683,25 @@ public class JavaFXProbe extends javafx.application.Application {
     }
     
     private void clearFields(){
-        pvValueField.clear();
-        pvWriteField.clear();
-        lastErrorField.clear();
-        metadataField.clear();
-        pvTimeField.clear();
-        pvTypeField.clear();
-        displayLimitsField.clear();
-        alarmLimitsField.clear();
-        warningLimitsField.clear();
-        controlLimitsField.clear();
-        unitField.clear();
-        expressionTypeField.clear();
-        expressionNameField.clear();
-        channelHandlerField.clear();
-        usageCountField.clear();
-        connectedRWField.clear();
-        channelPropertiesField.clear();
-        writeConnectedField.clear();
-        connectedField.clear();
+        pvValueField.setText("");
+        pvWriteField.setText("");
+        lastErrorField.setText("");
+        metadataField.setText("");
+        pvTimeField.setText("");
+        pvTypeField.setText("");
+        displayLimitsField.setText("");
+        alarmLimitsField.setText("");
+        warningLimitsField.setText("");
+        controlLimitsField.setText("");
+        unitField.setText("");
+        expressionTypeField.setText("");
+        expressionNameField.setText("");
+        channelHandlerField.setText("");
+        usageCountField.setText("");
+        connectedRWField.setText("");
+        channelPropertiesField.setText("");
+        writeConnectedField.setText("");
+        connectedField.setText("");
         
         if(grid.getChildren().contains(pvWriteField)){
             grid.getChildren().remove(pvWriteField);
@@ -737,6 +739,8 @@ public class JavaFXProbe extends javafx.application.Application {
                         formulaPV.close();
                     }
                     
+                    channelChanged = true;
+                    
                     hideVisual();
                     resetChoiceBox();
                     clearFields();
@@ -750,20 +754,25 @@ public class JavaFXProbe extends javafx.application.Application {
                             .readListener(new PVReaderListener<Object>() {
                                 @Override
                                 public void pvChanged(PVReaderEvent<Object> event) {
-                                    setLastError(formulaPV.lastException());
-                                    Object value = formulaPV.getValue();
-                                    setTextValue(format.format(value));
-                                    setType(ValueUtil.typeOf(value));
-                                    setTime(ValueUtil.timeOf(value));
-                                    setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                    setMetadata(ValueUtil.displayOf(value));
-                                    setAlarm(ValueUtil.alarmOf(value));
-                                    setConnected(formulaPV.isConnected());
-                                    if(value != null && !chooserAdded){
-                                        setChoiceBox(value);
+                                    if(!channelChanged) {
+                                        setLastError(formulaPV.lastException());
+                                        Object value = formulaPV.getValue();
+                                        setTextValue(format.format(value));
+                                        setType(ValueUtil.typeOf(value));
+                                        setTime(ValueUtil.timeOf(value));
+                                        setIndicator(ValueUtil.normalizedNumericValueOf(value));
+                                        setMetadata(ValueUtil.displayOf(value));
+                                        setAlarm(ValueUtil.alarmOf(value));
+                                        setConnected(formulaPV.isConnected());
+                                        if(value != null && !chooserAdded){
+                                            setChoiceBox(value);
+                                        }
+                                        if(showVisual && (value != null)){
+                                            setVisual(value);
+                                        }
                                     }
-                                    if(showVisual && (value != null)){
-                                        setVisual(value);
+                                    else {
+                                        channelChanged = false;
                                     }
                                 }
                             })
@@ -775,20 +784,25 @@ public class JavaFXProbe extends javafx.application.Application {
                                 .readListener(new PVReaderListener<Object>() {
                                         @Override
                                         public void pvChanged(PVReaderEvent<Object> event) {
-                                            setLastError(pv.lastException());
-                                            Object value = pv.getValue();
-                                            setTextValue(format.format(value));
-                                            setType(ValueUtil.typeOf(value));
-                                            setTime(ValueUtil.timeOf(value));
-                                            setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                            setMetadata(ValueUtil.displayOf(value));
-                                            setAlarm(ValueUtil.alarmOf(value));
-                                            setConnected(pv.isConnected());
-                                            if(value != null && !chooserAdded){
-                                                setChoiceBox(value);
+                                            if(!channelChanged) {
+                                                setLastError(pv.lastException());
+                                                Object value = pv.getValue();
+                                                setTextValue(format.format(value));
+                                                setType(ValueUtil.typeOf(value));
+                                                setTime(ValueUtil.timeOf(value));
+                                                setIndicator(ValueUtil.normalizedNumericValueOf(value));
+                                                setMetadata(ValueUtil.displayOf(value));
+                                                setAlarm(ValueUtil.alarmOf(value));
+                                                setConnected(pv.isConnected());
+                                                if(value != null && !chooserAdded){
+                                                    setChoiceBox(value);
+                                                }
+                                                if(showVisual && (value != null)){
+                                                    setVisual(value);
+                                                }
                                             }
-                                            if(showVisual && (value != null)){
-                                                setVisual(value);
+                                            else {
+                                                channelChanged = false;
                                             }
                                         }
                                     })
@@ -952,13 +966,14 @@ public class JavaFXProbe extends javafx.application.Application {
         
         final byte[] pixels = graph.render(value, Math.max(60, (int)(grid.getWidth() - 50)),
                                                           Math.max(60, graphHeight));
-        final int graphHeightFinal = graphHeight;
+        final int graphHeightFinal = Math.max(60, graphHeight);
+        
+        final int graphWidthFinal = Math.max(60, (int)(grid.getWidth() - 50));
 
         Platform.runLater(new Runnable() {
             @Override
             public void run() {
-                drawByteArray(pixels, Math.max(60, (int)(grid.getWidth() - 50)),
-                                               Math.max(60, graphHeightFinal));
+                drawByteArray(pixels, graphWidthFinal, graphHeightFinal);
                 if(!visualAdded) {
                     visualWrapper.getChildren().add(visualImageView);
                     grid.add(visualWrapper, 0, 5, 2, 2);
