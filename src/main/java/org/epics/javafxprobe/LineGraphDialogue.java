@@ -30,6 +30,14 @@ public class LineGraphDialogue extends Application{
     private final ChoiceBox interpolationChooser = new ChoiceBox();
     private boolean componentsAdded = false;
     
+    /**
+    * Displays a dialogue box that allows the user to set certain options for the shown linegraph
+    * Current options include:
+    * <ul>
+    *   <li> Interpolation </li>
+    * </ul>
+    * @param app
+    **/
     public void start(LineGraphApp app){
         
         lineGraphApp = app;
@@ -77,6 +85,9 @@ public class LineGraphDialogue extends Application{
         componentsAdded = true;
     }
     
+    /**
+     * Closes the dialogue box and resets all fields that might have been modified by the user.
+     */
     public void close() {
         stage.close();
         interpolationChooser.getSelectionModel().selectFirst();

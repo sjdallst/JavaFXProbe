@@ -32,6 +32,15 @@ public class IntensityGraphDialogue extends Application {
     private CheckBox showLegend = new CheckBox("Show legend");
     private boolean componentsAdded = false;
     
+    /**
+    * Displays a dialogue box that allows the user to set certain options for the shown intensitygraph
+    * Current options include:
+    * <ul>
+    *   <li> ColorMap </li>
+    *   <li> Legend (toggle on and off) </li>
+    * </ul>
+    * @param app
+    **/
     public void start(IntensityGraphApp app){
         
         intensityGraphApp = app;
@@ -83,6 +92,9 @@ public class IntensityGraphDialogue extends Application {
         componentsAdded = true;
     }
     
+    /**
+     * Closes the dialogue box and resets all fields that might have been modified by the user.
+     */
     public void close() {
         stage.close();
         colorSchemeChooser.getSelectionModel().selectFirst();
