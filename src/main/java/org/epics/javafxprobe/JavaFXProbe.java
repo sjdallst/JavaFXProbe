@@ -6,6 +6,7 @@
 
 package org.epics.javafxprobe;
 
+import com.sun.javafx.application.PlatformImpl;
 import eu.hansolo.enzo.common.Section;
 import eu.hansolo.enzo.gauge.Gauge;
 import java.util.ArrayList;
@@ -174,6 +175,15 @@ public class JavaFXProbe extends javafx.application.Application {
                 if(formulaPV != null){
                     formulaPV.close();
                 }
+                
+                Platform.runLater(new Runnable(){
+                    @Override
+                    public void run() {
+                        PlatformImpl.tkExit();
+                        Platform.exit();
+                        System.exit(0);
+                    }
+                });
                 
             }
             
@@ -947,9 +957,11 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private void showGraph(VNumberArray value, BaseGraphApp graph) {
         
-        /*Graph height is calculated by subtracting the total height of the all of the currently visible
+        /**
+        *Graph height is calculated by subtracting the total height of the all of the currently visible
         *text fields from the height of the grid (which is equal to the distance between the top and bottom
-        *of the window border.*/
+        *of the window border.)
+        */
         int graphHeight = 0;
         if(metaDataPane.isExpanded() && generalInfoPane.isExpanded()){ 
             graphHeight = (int)(grid.getHeight() - (17*10 + 16*pvNameField.getHeight() + 50));
@@ -964,11 +976,11 @@ public class JavaFXProbe extends javafx.application.Application {
             graphHeight = (int)(grid.getHeight() - (7*10 + 6*pvNameField.getHeight() + 50));
         }
         
-        final byte[] pixels = graph.render(value, Math.max(60, (int)(grid.getWidth() - 50)),
-                                                          Math.max(60, graphHeight));
         final int graphHeightFinal = Math.max(60, graphHeight);
         
         final int graphWidthFinal = Math.max(60, (int)(grid.getWidth() - 50));
+        
+        final byte[] pixels = graph.render(value, graphWidthFinal, graphHeightFinal);
 
         Platform.runLater(new Runnable() {
             @Override
