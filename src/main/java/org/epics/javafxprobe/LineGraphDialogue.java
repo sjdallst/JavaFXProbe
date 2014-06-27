@@ -24,15 +24,16 @@ import org.epics.graphene.InterpolationScheme;
 public class LineGraphDialogue extends Application{
     
     private LineGraphApp lineGraphApp;
-    private Stage stage;
-    private GridPane grid = new GridPane();
-    private Scene scene = new Scene(grid, 220, 75);
-    private ChoiceBox interpolationChooser = new ChoiceBox();
+    private Stage stage = new Stage();
+    private final GridPane grid = new GridPane();
+    private final Scene scene = new Scene(grid, 220, 75);
+    private final ChoiceBox interpolationChooser = new ChoiceBox();
+    private boolean componentsAdded = false;
     
     public void start(LineGraphApp app){
         
         lineGraphApp = app;
-        this.start(new Stage());
+        this.start(stage);
         
     }
     
@@ -42,7 +43,9 @@ public class LineGraphDialogue extends Application{
         this.stage = primaryStage;
         
         //instantiate grid, set actions for fields, add components to grid.
-        initComponents();
+        if(!componentsAdded) {
+            initComponents();
+        }
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Graph Settings");
@@ -71,5 +74,11 @@ public class LineGraphDialogue extends Application{
         interpolationChooser.getSelectionModel().select(0);
         grid.add(interpolationChooser, 0, 0);
         grid.setAlignment(Pos.CENTER);
+        componentsAdded = true;
+    }
+    
+    public void close() {
+        stage.close();
+        interpolationChooser.getSelectionModel().selectFirst();
     }
 }

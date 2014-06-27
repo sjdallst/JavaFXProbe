@@ -17,7 +17,6 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
-import org.epics.graphene.InterpolationScheme;
 import org.epics.graphene.NumberColorMaps;
 
 /**
@@ -26,16 +25,17 @@ import org.epics.graphene.NumberColorMaps;
  */
 public class IntensityGraphDialogue extends Application {
     private IntensityGraphApp intensityGraphApp;
-    private Stage stage;
+    private Stage stage = new Stage();
     private GridPane grid = new GridPane();
     private Scene scene = new Scene(grid, 220, 75);
     private ChoiceBox colorSchemeChooser = new ChoiceBox();
     private CheckBox showLegend = new CheckBox("Show legend");
+    private boolean componentsAdded = false;
     
     public void start(IntensityGraphApp app){
         
         intensityGraphApp = app;
-        this.start(new Stage());
+        this.start(stage);
         
     }
     
@@ -44,8 +44,13 @@ public class IntensityGraphDialogue extends Application {
         
         this.stage = primaryStage;
         
-        //instantiate grid, set actions for fields, add components to grid.
-        initComponents();
+        if(!componentsAdded) {
+            //instantiate grid, set actions for fields, add components to grid.
+            initComponents();
+        }
+        else {
+            colorSchemeChooser.getSelectionModel().selectFirst();
+        }
         
         scene.setFill(Paint.valueOf("lightGray"));
         primaryStage.setTitle("Graph Settings");
@@ -75,5 +80,12 @@ public class IntensityGraphDialogue extends Application {
         grid.add(colorSchemeChooser, 0, 0);
         grid.add(showLegend, 1, 0);
         grid.setAlignment(Pos.CENTER);
+        componentsAdded = true;
+    }
+    
+    public void close() {
+        stage.close();
+        colorSchemeChooser.getSelectionModel().selectFirst();
+        showLegend.setSelected(false);
     }
 }
