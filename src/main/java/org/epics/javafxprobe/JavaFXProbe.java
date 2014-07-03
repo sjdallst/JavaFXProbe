@@ -110,7 +110,6 @@ public class JavaFXProbe extends javafx.application.Application {
     private final TextField channelPropertiesField = new TextField();
     private final TextField writeConnectedField = new TextField();
     private final TextField connectedField = new TextField();
-    private final Slider indicator = new Slider();
     private final ValueFormat format = new SimpleValueFormat(3);
     
     private ChoiceBox<String> visualChooser = new ChoiceBox<String>();
@@ -146,6 +145,11 @@ public class JavaFXProbe extends javafx.application.Application {
         this.start(new Stage());
     }
     
+    public void start(String pvName){
+        pvNameField.setText(pvName);
+        this.start(new Stage());
+    }
+    
     @Override
     public void start(Stage primaryStage) {
         
@@ -155,15 +159,21 @@ public class JavaFXProbe extends javafx.application.Application {
         initComponents();
         
         scene.setFill(Paint.valueOf("lightGray"));
+        
+        /**
+         * In order to ensure that all pv channels and threads are closed we add
+         * a custom action for when the close(x) button is pressed.
+         */
         primaryStage.setOnCloseRequest((WindowEvent event) -> {
+            //First ensure all possible pvs are closed
             if(pv != null){
                 pv.close();
             }
-            
             if(formulaPV != null){
                 formulaPV.close();
             }
             
+            //Ensure that all threads are closed.
             Platform.runLater(() -> {
                 PlatformImpl.tkExit();
                 Platform.exit();
@@ -173,6 +183,9 @@ public class JavaFXProbe extends javafx.application.Application {
         primaryStage.setTitle("Probe");
         primaryStage.setScene(scene);
         primaryStage.show();
+        if(pvNameField.getText().compareTo("") != 0) {
+            setupPV(pvNameField.getText());
+        }
     }
 
     /**
@@ -186,10 +199,19 @@ public class JavaFXProbe extends javafx.application.Application {
     public static void main(String[] args) {
         SetupUtil.defaultCASetup();
         Platform.runLater(() -> {
-            new JavaFXProbe().start();
+            if(args.length == 0){
+                new JavaFXProbe().start();
+            }
+            else {
+                new JavaFXProbe().start(args[0]); //start javafxprobe with a command from the command line
+            }
         }); 
     }
     
+    /**
+     * Sets the textfield labeled "Value:" to the string representation of the
+     * current value being read by pv
+     */
     private void setTextValue(String value) {
         if (value == null) {
             Platform.runLater(() -> {
@@ -203,6 +225,11 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * sets the textfield labeled "Type:" to the type of the current value
+     * being read by pv..
+     * @param type 
+     */
     private void setType(Class type) {
         if (type == null) {
             Platform.runLater(() -> {
@@ -216,10 +243,19 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * Right now does nothing, functionality might be implemented in set metadata.
+     * @param alarm 
+     */
+    //TODO: either implement this so it does something or get rid of it.
     private void setAlarm(Alarm alarm) {
         
     }
 
+    /**
+     * Updates the textfield labeled "Time:" with the latest time value read from pv
+     * @param time 
+     */
     private void setTime(Time time) {
         if (time == null) {
             Platform.runLater(() -> {
@@ -233,6 +269,11 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * updates the textfields labeled "Display Limits:", "Alarm Limits:", "Warning Limits:",
+     * "Control Limits:", and "Unit:" based on values taken from the last pv update
+     * @param display 
+     */
     private void setMetadata(Display display) {
         if (display == null) {
             Platform.runLater(() -> {
@@ -255,6 +296,11 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * updates the text field labeled "Last Error:" with the last error that occurred
+     * while attempting to read from a channel, the text field remains blank if no error has occurred.
+     * @param ex 
+     */
     private void setLastError(Exception ex) {
         if (ex != null) {
             final String message = ex.getClass().getSimpleName() + " " + ex.getMessage();
@@ -265,6 +311,11 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * updates textfield labeled "Connected:" indicating whether a read connection
+     * exists.
+     * @param connected 
+     */
     private void setConnected(Boolean connected) {
         if (connected != null) {
             final String connectedString = connected.toString();
@@ -278,6 +329,11 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
 
+    /**
+     * updates field labeled "Write Connected:" indicating whether or not a 
+     * write channel exists.
+     * @param connected 
+     */
     private void setWriteConnected(Boolean connected) {
         if (connected != null) {
             final boolean connected1 = connected;
@@ -296,19 +352,16 @@ public class JavaFXProbe extends javafx.application.Application {
             });
         }
     }
-
-    private void setIndicator(Double value) {
-        double range = (indicator.getMax() - indicator.getMin());
-        double position = (indicator.getMin() + range / 2);
-        if (value != null) {
-            position = (int) (range * value);
-        }
-        final double position1 = position;
-        Platform.runLater(() -> {
-            indicator.setValue(position1);
-        });
-    }
     
+    /**
+     * Method responsible for setting up the visual that the user has chosen to see.
+     * Only certain visuals are possible for given types of data
+     * - VNumber - meter
+     * - VNumberArray - LineGraph, IntensityGraph
+     * - VTable - tableView
+     * - VImage - image
+     * @param value 
+     */
     private void setVisual(Object value){
         
         final Object value1 = value;
@@ -316,7 +369,9 @@ public class JavaFXProbe extends javafx.application.Application {
         if(value instanceof VNumber){
             Platform.runLater(() -> {
                 if(!visualAdded) {
+                    //if the user wishes to see a meter, setup the meter and add it to the display
                     if(showMeter) {
+                        //setup meter based on value
                         visualGauge.setMinValue(ValueUtil.displayOf(value1).getLowerDisplayLimit());
                         visualGauge.setMaxValue(ValueUtil.displayOf(value1).getUpperDisplayLimit());
                         visualGauge.setAnimated(false);
@@ -333,6 +388,7 @@ public class JavaFXProbe extends javafx.application.Application {
                         visualGauge.setPlainValue(false);
                         visualGauge.setValue((ValueUtil.displayOf(value1).getLowerDisplayLimit() + ValueUtil.displayOf(value1).getUpperDisplayLimit())/2);
                         visualGauge.setAutoScale(true);
+                        //add meter to grid
                         visualWrapper.getChildren().add(visualGauge);
                         grid.add(visualWrapper, 0, 5, 2, 2);
                         visualAdded = true;
@@ -340,7 +396,7 @@ public class JavaFXProbe extends javafx.application.Application {
                     grid.getRowConstraints().get(5).setMaxHeight(Double.MAX_VALUE);
                 }
                 if(showMeter) {
-                    visualGauge.setValue(Double.parseDouble(format.format(value1)));
+                    visualGauge.setValue(Double.parseDouble(format.format(value1))); //update meter
                 }
             });
         }
@@ -362,19 +418,26 @@ public class JavaFXProbe extends javafx.application.Application {
                 final VTable value2 = (VTable)value;
                 Platform.runLater(() -> {
                     VTable table = (VTable)value2;
+                    //make an array of table columns.
                     TableColumn<Map, String> [] tableColumns = new TableColumn[table.getColumnCount()];
+                    //set the name and cell factory for each column
                     for(int i = 0; i < table.getColumnCount(); i++) {
                         tableColumns[i] = new TableColumn(table.getColumnName(i));
                         tableColumns[i].setCellValueFactory(new MapValueFactory(table.getColumnName(i)));
                     }
                     
+                    //create table
                     visualTable = new TableView<>(generateDataInMap(table));
 
+                    //safely add all columns to table
                     visualTable.getColumns().clear();
                     visualTable.getColumns().addAll(tableColumns);
                     
+                    //set columns to fit to the current width of the table unless
+                    //the user changes them.
                     visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
                     
+                    //create a cell factory that will work for the columns we have set up.
                     Callback<TableColumn<Map, String>, TableCell<Map, String>>
                         cellFactoryForMap = new Callback<TableColumn<Map, String>,
                             TableCell<Map, String>>() {
@@ -392,16 +455,23 @@ public class JavaFXProbe extends javafx.application.Application {
                                     });
                                 }
                     };
+                    
+                    //set the cell factory for each column to the cell factory we just made.
                     for(int i = 0; i < visualTable.getColumns().size(); i++){
                         ((TableColumn<Map, String>)visualTable.getColumns().get(i)).setCellFactory(cellFactoryForMap);
                     }
+                    
+                    //make it so table grows when user stretches screen.
                     visualTable.maxWidth(Double.MAX_VALUE);
                     visualWrapper.maxWidth(Double.MAX_VALUE);
                     HBox.setHgrow(visualTable, Priority.ALWAYS);
+                    
+                    //update table.
                     if(visualAdded){
                         visualWrapper.getChildren().remove(visualWrapper.getChildren().size()-1);
                         visualWrapper.getChildren().add(visualTable);
                     }
+                    //add the table to the grid if it has not been already.
                     if(!visualAdded) {
                         visualWrapper.getChildren().add(visualTable);
                         grid.add(visualWrapper, 0, 5, 2, 2);
@@ -431,6 +501,15 @@ public class JavaFXProbe extends javafx.application.Application {
          
     }
     
+    /**
+     * Sets the visual options available to the user based on the data given.
+     * Different datasets have different options.
+     * - VNumber - meter
+     * - VNumberArray - LineGraph, IntensityGraph
+     * - VTable - tableView
+     * - VImage - image 
+     * @param value 
+     */
     private void setChoiceBox(Object value){
         
         if(value instanceof VNumber) {
@@ -476,6 +555,9 @@ public class JavaFXProbe extends javafx.application.Application {
         
         if(value instanceof VNumberArray) {
             visualStringsArray.add("Hide");
+            
+            //decided which graphs the user should be able to choose by seeing
+            //which ones can be drawn without error.
             try {
                 lineGraphApp.render((VNumberArray)value, 100, 100);
                 visualStringsArray.add("Line Graph");
@@ -664,88 +746,7 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private void initComponents(){
         pvNameField.setOnAction((ActionEvent event) -> {
-            if (pv != null || formulaPV != null) {
-                
-                if(pv != null){
-                    pv.close();
-                }
-                
-                if(formulaPV != null) {
-                    formulaPV.close();
-                }
-                
-                channelChanged = true;
-                
-                hideVisual();
-                resetChoiceBox();
-                clearFields();
-                closeDialogues();
-            }
-            
-            //attempt to set up a channel from user input
-            try {
-                if(pvNameField.getText().startsWith("=")){
-                    formulaPV = PVManager.read(formula(pvNameField.getText()))
-                            .timeout(TimeDuration.ofSeconds(5))
-                            .readListener((PVReaderEvent<Object> event1) -> {
-                                if(!channelChanged) {
-                                    setLastError(formulaPV.lastException());
-                                    Object value = formulaPV.getValue();
-                                    setTextValue(format.format(value));
-                                    setType(ValueUtil.typeOf(value));
-                                    setTime(ValueUtil.timeOf(value));
-                                    setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                    setMetadata(ValueUtil.displayOf(value));
-                                    setAlarm(ValueUtil.alarmOf(value));
-                                    setConnected(formulaPV.isConnected());
-                                    if(value != null && !chooserAdded){
-                                        setChoiceBox(value);
-                                    }
-                                    if(showVisual && (value != null)){
-                                        setVisual(value);
-                                    }
-                                }
-                                else {
-                                    channelChanged = false;
-                                }
-                    })
-                            .maxRate(ofHertz(10));
-                }
-                else {
-                    pv = PVManager.readAndWrite(channel(pvNameField.getText()))
-                            .timeout(TimeDuration.ofSeconds(5))
-                            .readListener((PVReaderEvent<Object> event1) -> {
-                                if(!channelChanged) {
-                                    setLastError(pv.lastException());
-                                    Object value = pv.getValue();
-                                    setTextValue(format.format(value));
-                                    setType(ValueUtil.typeOf(value));
-                                    setTime(ValueUtil.timeOf(value));
-                                    setIndicator(ValueUtil.normalizedNumericValueOf(value));
-                                    setMetadata(ValueUtil.displayOf(value));
-                                    setAlarm(ValueUtil.alarmOf(value));
-                                    setConnected(pv.isConnected());
-                                    if(value != null && !chooserAdded){
-                                        chooserAdded = true;
-                                        setChoiceBox(value);
-                                    }
-                                    if(showVisual && (value != null)){
-                                        setVisual(value);
-                                    }
-                                }
-                                else {
-                                    channelChanged = false;
-                                }
-                            })
-                            .writeListener((PVWriterEvent<Object> event1) -> {
-                                setWriteConnected(pv.isWriteConnected());
-                            })
-                            .asynchWriteAndMaxReadRate(ofHertz(10));
-                }
-            }
-            catch (RuntimeException ex) { //if an error is thrown, update the associated textfield
-                setLastError(ex);
-            }
+            setupPV(pvNameField.getText());
         });
         
         pvWriteField.setOnAction((ActionEvent event) -> {
@@ -935,6 +936,89 @@ public class JavaFXProbe extends javafx.application.Application {
             allData.add(row); // add each row to cvsData
         }
         return allData;
+    }
+    
+    private void setupPV(String pvName) {
+        if (pv != null || formulaPV != null) {
+
+            if(pv != null){
+                pv.close();
+            }
+
+            if(formulaPV != null) {
+                formulaPV.close();
+            }
+
+            channelChanged = true;
+
+            hideVisual();
+            resetChoiceBox();
+            clearFields();
+            closeDialogues();
+        }
+
+        //attempt to set up a channel from user input
+        try {
+            if(pvName.startsWith("=")){
+                formulaPV = PVManager.read(formula(pvName))
+                        .timeout(TimeDuration.ofSeconds(5))
+                        .readListener((PVReaderEvent<Object> event1) -> {
+                            if(!channelChanged) {
+                                setLastError(formulaPV.lastException());
+                                Object value = formulaPV.getValue();
+                                setTextValue(format.format(value));
+                                setType(ValueUtil.typeOf(value));
+                                setTime(ValueUtil.timeOf(value));
+                                setMetadata(ValueUtil.displayOf(value));
+                                setAlarm(ValueUtil.alarmOf(value));
+                                setConnected(formulaPV.isConnected());
+                                if(value != null && !chooserAdded){
+                                    setChoiceBox(value);
+                                }
+                                if(showVisual && (value != null)){
+                                    setVisual(value);
+                                }
+                            }
+                            else {
+                                channelChanged = false;
+                            }
+                })
+                        .maxRate(ofHertz(10));
+            }
+            else {
+                pv = PVManager.readAndWrite(channel(pvName))
+                        .timeout(TimeDuration.ofSeconds(5))
+                        .readListener((PVReaderEvent<Object> event1) -> {
+                            if(!channelChanged) {
+                                setLastError(pv.lastException());
+                                Object value = pv.getValue();
+                                setTextValue(format.format(value));
+                                setType(ValueUtil.typeOf(value));
+                                setTime(ValueUtil.timeOf(value));
+                                setMetadata(ValueUtil.displayOf(value));
+                                setAlarm(ValueUtil.alarmOf(value));
+                                setConnected(pv.isConnected());
+                                if(value != null && !chooserAdded){
+                                    chooserAdded = true;
+                                    setChoiceBox(value);
+                                }
+                                if(showVisual && (value != null)){
+                                    setVisual(value);
+                                }
+                            }
+                            else {
+                                channelChanged = false;
+                            }
+                        })
+                        .writeListener((PVWriterEvent<Object> event1) -> {
+                            setWriteConnected(pv.isWriteConnected());
+                        })
+                        .asynchWriteAndMaxReadRate(ofHertz(10));
+            }
+        }
+        catch (RuntimeException ex) { //if an error is thrown, update the associated textfield
+            setLastError(ex);
+        }
     }
 }
 
