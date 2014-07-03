@@ -10,7 +10,9 @@ import com.sun.javafx.application.PlatformImpl;
 import eu.hansolo.enzo.common.Section;
 import eu.hansolo.enzo.gauge.Gauge;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -23,10 +25,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.cell.MapValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
@@ -39,6 +44,8 @@ import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Callback;
+import javafx.util.StringConverter;
 import static org.epics.pvmanager.ExpressionLanguage.channel;
 import org.epics.pvmanager.PV;
 import org.epics.pvmanager.PVManager;
@@ -49,14 +56,11 @@ import static org.epics.pvmanager.formula.ExpressionLanguage.formula;
 import org.epics.pvmanager.sample.SetupUtil;
 import org.epics.util.array.ListNumber;
 import org.epics.util.time.TimeDuration;
+import org.epics.util.time.Timestamp;
 import static org.epics.util.time.TimeDuration.ofHertz;
+
+
 import org.epics.vtype.*;
-import org.epics.vtype.Alarm;
-import org.epics.vtype.Display;
-import org.epics.vtype.SimpleValueFormat;
-import org.epics.vtype.Time;
-import org.epics.vtype.ValueFormat;
-import org.epics.vtype.ValueUtil;
 
 /**
  *
@@ -109,7 +113,7 @@ public class JavaFXProbe extends javafx.application.Application {
     private final Slider indicator = new Slider();
     private final ValueFormat format = new SimpleValueFormat(3);
     
-    private ChoiceBox visualChooser = new ChoiceBox();
+    private ChoiceBox<String> visualChooser = new ChoiceBox<String>();
     private boolean chooserAdded = false;
     
     private boolean showVisual = false, visualAdded = false;
@@ -123,7 +127,7 @@ public class JavaFXProbe extends javafx.application.Application {
     
     private final HBox visualWrapper = new HBox();
     private final Text errorText = new Text();
-    private TableView visualTable = new TableView();
+    private TableView visualTable;
     private final ImageView visualImageView = new ImageView();
     private WritableImage visualImage = new WritableImage(100, 100);
     private LineGraphApp lineGraphApp = new LineGraphApp();
@@ -357,42 +361,47 @@ public class JavaFXProbe extends javafx.application.Application {
             if(showTable){
                 final VTable value2 = (VTable)value;
                 Platform.runLater(() -> {
-                    visualTable = new TableView();
                     VTable table = (VTable)value2;
-                    TableColumn [] tableColumns = new TableColumn[table.getColumnCount()];
+                    TableColumn<Map, String> [] tableColumns = new TableColumn[table.getColumnCount()];
                     for(int i = 0; i < table.getColumnCount(); i++) {
                         tableColumns[i] = new TableColumn(table.getColumnName(i));
+                        tableColumns[i].setCellValueFactory(new MapValueFactory(table.getColumnName(i)));
                     }
+                    
+                    visualTable = new TableView<>(generateDataInMap(table));
+
+                    visualTable.getColumns().clear();
                     visualTable.getColumns().addAll(tableColumns);
+                    
                     visualTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
                     
-                    ObservableList<ObservableList> csvData = FXCollections.observableArrayList();
-                    
-                    for(int i = 0; i < table.getRowCount(); i++) {
-                        ObservableList<String> row = FXCollections.observableArrayList();
-                        for(int j = 0; j < table.getColumnCount(); j++) {
-                            if(table.getColumnData(j) instanceof List){
-                                if(i < ((List)(table.getColumnData(j))).size()) {
-                                    row.add(((List)(table.getColumnData(j))).get(i).toString());
+                    Callback<TableColumn<Map, String>, TableCell<Map, String>>
+                        cellFactoryForMap = new Callback<TableColumn<Map, String>,
+                            TableCell<Map, String>>() {
+                                @Override
+                                public TableCell call(TableColumn p) {
+                                    return new TextFieldTableCell(new StringConverter() {
+                                        @Override
+                                        public String toString(Object t) {
+                                            return t.toString();
+                                        }
+                                        @Override
+                                        public Object fromString(String string) {
+                                            return string;
+                                        }                                    
+                                    });
                                 }
-                                else {
-                                    row.add("");
-                                }
-                            }
-                            else {
-                                if(i < ((ListNumber)(table.getColumnData(j))).size()) {
-                                    row.add(((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
-                                }
-                                else {
-                                    row.add("");
-                                }
-                            }
-                        }
-                        csvData.add(row); // add each row to cvsData
+                    };
+                    for(int i = 0; i < visualTable.getColumns().size(); i++){
+                        ((TableColumn<Map, String>)visualTable.getColumns().get(i)).setCellFactory(cellFactoryForMap);
                     }
-                    
-                    visualTable.setItems(csvData); // finally add data to tableview
-                    
+                    visualTable.maxWidth(Double.MAX_VALUE);
+                    visualWrapper.maxWidth(Double.MAX_VALUE);
+                    HBox.setHgrow(visualTable, Priority.ALWAYS);
+                    if(visualAdded){
+                        visualWrapper.getChildren().remove(visualWrapper.getChildren().size()-1);
+                        visualWrapper.getChildren().add(visualTable);
+                    }
                     if(!visualAdded) {
                         visualWrapper.getChildren().add(visualTable);
                         grid.add(visualWrapper, 0, 5, 2, 2);
@@ -649,7 +658,7 @@ public class JavaFXProbe extends javafx.application.Application {
         visualStringsArray.clear();
         visualGraphArray.clear();
         
-        visualChooser = new ChoiceBox();
+        visualChooser = new ChoiceBox<String>();
         chooserAdded = false;
     }
     
@@ -734,7 +743,7 @@ public class JavaFXProbe extends javafx.application.Application {
                             .asynchWriteAndMaxReadRate(ofHertz(10));
                 }
             }
-            catch (RuntimeException ex) { //if the channel does not work, then throw an error.
+            catch (RuntimeException ex) { //if an error is thrown, update the associated textfield
                 setLastError(ex);
             }
         });
@@ -894,6 +903,38 @@ public class JavaFXProbe extends javafx.application.Application {
     private void closeDialogues(){
         lineGraphDialogue.close();
         intensityGraphDialogue.close();
+    }
+    
+    private ObservableList<Map> generateDataInMap(VTable table){
+        ObservableList<Map> allData = FXCollections.observableArrayList();
+        for(int i = 0; i < table.getRowCount(); i++) {
+            Map<String, String> row = new HashMap<>();
+            for(int j = 0; j < table.getColumnCount(); j++) {
+                if(table.getColumnData(j) instanceof List) {
+                    if(i < ((List)(table.getColumnData(j))).size()) {
+                        if(((List)(table.getColumnData(j))).get(i) instanceof Timestamp) {
+                            row.put(table.getColumnName(j), ValueUtil.getDefaultTimestampFormat().format(((List)(table.getColumnData(j))).get(i)));
+                        }
+                        else {
+                            row.put(table.getColumnName(j), ((List)(table.getColumnData(j))).get(i).toString());
+                        }
+                    }
+                    else {
+                        row.put(table.getColumnName(j) ,"");
+                    }
+                }
+                else {
+                    if(i < ((ListNumber)(table.getColumnData(j))).size()) {
+                        row.put(table.getColumnName(j), ((ListNumber)(table.getColumnData(j))).getDouble(i) + "");
+                    }
+                    else {
+                        row.put(table.getColumnName(j), "");
+                    }
+                }
+            }
+            allData.add(row); // add each row to cvsData
+        }
+        return allData;
     }
 }
 
