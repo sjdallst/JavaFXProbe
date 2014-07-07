@@ -556,7 +556,7 @@ public class JavaFXProbe extends javafx.application.Application {
         if(value instanceof VNumberArray) {
             visualStringsArray.add("Hide");
             
-            //decided which graphs the user should be able to choose by seeing
+            //decide which graphs the user should be able to choose by seeing
             //which ones can be drawn without error.
             try {
                 lineGraphApp.render((VNumberArray)value, 100, 100);
@@ -649,8 +649,15 @@ public class JavaFXProbe extends javafx.application.Application {
         
     }
     
+    /**
+     * Changes the image held in visualImageView by setting it to the writable
+     * image which is written to from the given byte array "pixels".
+     * @param pixels
+     * @param width
+     * @param height 
+     */
     private void drawByteArray(byte[] pixels, int width, int height) {
-        visualImage = new WritableImage(width, height);
+        visualImage = new WritableImage(width, height); //Clear to write new image freely
         PixelWriter writer = visualImage.getPixelWriter();
         for(int i = 0; i < height; i++){
             for(int j = 0; j < width; j++){
@@ -665,11 +672,18 @@ public class JavaFXProbe extends javafx.application.Application {
         visualImageView.setImage(visualImage);
     }
     
+    /**
+     * Calls swapVisual, then shrinks the space that the visual took.
+     */
     private void hideVisual(){
         swapVisual();
         grid.getRowConstraints().get(5).setVgrow(Priority.NEVER);
     }
     
+    /**
+     * Removes any visuals that have been added to the application and resets any
+     * booleans that are associated with them. Also closes any dialogues that might be open.
+     */
     private void swapVisual() {
         showVisual = visualAdded = false;
         
@@ -702,6 +716,9 @@ public class JavaFXProbe extends javafx.application.Application {
         closeDialogues();
     }
     
+    /**
+     * Resets all text fields to blank text (except pvNameField)
+     */
     private void clearFields(){
         pvValueField.setText("");
         pvWriteField.setText("");
@@ -723,6 +740,9 @@ public class JavaFXProbe extends javafx.application.Application {
         writeConnectedField.setText("");
         connectedField.setText("");
         
+        //if the field for the user to write values is present it should be removed
+        //as there is no guarentee that the user will be able to use it when the next
+        //channel is opened.
         if(grid.getChildren().contains(pvWriteField)){
             grid.getChildren().remove(pvWriteField);
         }
@@ -731,6 +751,10 @@ public class JavaFXProbe extends javafx.application.Application {
         
     }
     
+    /**
+     * Removes the choicebox from the grid if it is present, and resets any variables
+     * that are associated with it.
+     */
     private void resetChoiceBox(){
         
         if(grid.getChildren().contains(visualChooser)){
@@ -744,6 +768,10 @@ public class JavaFXProbe extends javafx.application.Application {
         chooserAdded = false;
     }
     
+    /**
+     * Sets onAction for various static components as well as sets the styling
+     * for various components (such as the various grids in the application).
+     */
     private void initComponents(){
         pvNameField.setOnAction((ActionEvent event) -> {
             setupPV(pvNameField.getText());
@@ -831,6 +859,10 @@ public class JavaFXProbe extends javafx.application.Application {
         
     }
     
+    /**
+     * Clears previous visual if it exists, then adds a config button and sets
+     * the boolean to draw a linegraph on the next pvAction to true.
+     */
     private void setupLineGraph() {
         swapVisual();
         visualConfigButton = new Button("Configure");
@@ -842,6 +874,10 @@ public class JavaFXProbe extends javafx.application.Application {
         showLineGraph = true;
     }
     
+    /**
+     * Clears previous visual if it exists, then adds a config button and sets
+     * the boolean to draw an intensity graph on the next pvAction to true.
+     */
     private void setupIntensityGraph() {
         swapVisual();
         visualConfigButton = new Button("Configure");
@@ -853,6 +889,10 @@ public class JavaFXProbe extends javafx.application.Application {
         showIntensityGraph = true;
     }
     
+    /**
+     * Decides which setup function to call based on what the instance of graph is.
+     * @param graph 
+     */
     private void setupGraph(BaseGraphApp graph){
         if(graph instanceof LineGraphApp){
             setupLineGraph();
@@ -862,6 +902,12 @@ public class JavaFXProbe extends javafx.application.Application {
         }
     }
     
+    /**
+     * Calculates the size of the graph to be drawn then uses the render function
+     * from graph to draw to an image of said size.
+     * @param value
+     * @param graph 
+     */
     private void showGraph(VNumberArray value, BaseGraphApp graph) {
         
         /**
@@ -901,11 +947,19 @@ public class JavaFXProbe extends javafx.application.Application {
         });
     }
     
+    /**
+     * Closes any dialogues that might be open.
+     */
     private void closeDialogues(){
         lineGraphDialogue.close();
         intensityGraphDialogue.close();
     }
     
+    /**
+     * Makes a an observable list of maps where each map corresponds to a row.
+     * @param table
+     * @return 
+     */
     private ObservableList<Map> generateDataInMap(VTable table){
         ObservableList<Map> allData = FXCollections.observableArrayList();
         for(int i = 0; i < table.getRowCount(); i++) {
@@ -933,11 +987,15 @@ public class JavaFXProbe extends javafx.application.Application {
                     }
                 }
             }
-            allData.add(row); // add each row to cvsData
+            allData.add(row); // add each row to allData
         }
         return allData;
     }
     
+    /**
+     * Creates a pv that will read and/or write from the channel specified by pvName.
+     * @param pvName 
+     */
     private void setupPV(String pvName) {
         if (pv != null || formulaPV != null) {
 
